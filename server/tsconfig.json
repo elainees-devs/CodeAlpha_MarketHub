@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    /* =========================
+       BASIC SETUP
+    ========================= */
+    "target": "ES2020",
+    "module": "CommonJS",
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    /* =========================
+       STRICT TYPE SAFETY
+    ========================= */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    // "types": ["jest"],
+
+    /* =========================
+       MODULE RESOLUTION
+    ========================= */
+    "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+
+    /* =========================
+       PRISMA COMPATIBILITY
+    ========================= */
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "skipLibCheck": true,
+
+    /* =========================
+       DEBUGGING & OUTPUT
+    ========================= */
+    "sourceMap": true,
+    "removeComments": true,
+
+    /* =========================
+       SAFETY
+    ========================= */
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}
