@@ -4,6 +4,7 @@
 export interface IBase {
   id: number;
   created_at: string;
+  deleted_at?: string | null;
 }
 
 /**
@@ -13,7 +14,7 @@ export interface IUser extends IBase {
   name: string;
   email: string;
   password_hash: string;
-  deleted_at?: string | null;
+ 
 }
 
 /**
