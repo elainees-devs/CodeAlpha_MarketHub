@@ -44,4 +44,4 @@ export { OrderItemEntity, mapOrderItem } from "./orderItem.mapper";
 export { PaymentEntity, mapPayment } from "./payment.mapper";
 
 // Shipment related mappers
-export { ShipmentEntity, mapShipment } from "./shippment.mapper";
+export { ShipmentEntity, mapShipment } from "./shipment.mapper";
