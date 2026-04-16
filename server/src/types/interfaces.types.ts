@@ -226,4 +226,5 @@ export interface IAuditLog {
 export interface IAuthUser {
   // runtime representation of authenticated user
   user_id: number;
+  roles: string[]; // e.g. ["admin", "customer"]
 }
