@@ -1,5 +1,3 @@
-import e from 'express';
-
 export { ROLES, PERMISSIONS, ORDER_STATUS, PAYMENT_STATUS, PAYMENT_PROVIDERS, SHIPMENT_STATUS, ROLE_PERMISSIONS } from './constants'
 export { ApiError } from './app-error';
 export { generateToken, verifyToken } from './token';
