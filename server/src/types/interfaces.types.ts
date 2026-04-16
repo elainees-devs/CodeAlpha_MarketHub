@@ -210,6 +210,19 @@ export interface CreatePaymentInput {
   order_id: number;
   provider: PaymentProvider;
 }
+
+// Audit Log
+export interface IAuditLog {
+  id: number;
+  table_name: string;
+  record_id: number;
+  action: string;
+  changed_by?: number | null;
+  changed_at: string;
+  old_data?: any;
+  new_data?: any;
+}
+
 // Authenticated user info (from JWT)
 export interface IAuthUser { // runtime representation of authenticated user
   user_id: number;
