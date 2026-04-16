@@ -64,4 +64,4 @@ class PermissionService {
   }
 }
 
-export default new PermissionService();
+export const permissionService = new PermissionService();
