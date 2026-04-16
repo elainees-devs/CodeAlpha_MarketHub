@@ -210,3 +210,7 @@ export interface CreatePaymentInput {
   order_id: number;
   provider: PaymentProvider;
 }
+// Authenticated user info (from JWT)
+export interface IAuthUser { // runtime representation of authenticated user
+  user_id: number;
+}
