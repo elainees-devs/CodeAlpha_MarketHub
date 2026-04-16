@@ -271,6 +271,42 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =========================================================
+-- AUDIT LOGS
+-- =========================================================
+
+CREATE TABLE audit_logs (
+id SERIAL PRIMARY KEY,
+
+table_name TEXT NOT NULL,
+record_id INTEGER NOT NULL,
+
+action TEXT NOT NULL CHECK (action IN ('INSERT', 'UPDATE', 'DELETE')),
+
+changed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+
+changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+old_data JSONB,
+new_data JSONB
+);
+
+-- =========================================================
+-- AUDIT LOG INDEXES
+-- =========================================================
+
+CREATE INDEX idx_audit_logs_table_name ON audit_logs(table_name);
+CREATE INDEX idx_audit_logs_record_id ON audit_logs(record_id);
+CREATE INDEX idx_audit_logs_changed_by ON audit_logs(changed_by);
+CREATE INDEX idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX idx_audit_logs_changed_at ON audit_logs(changed_at);
+
+-- Fast lookup: see history of a specific record
+CREATE INDEX idx_audit_logs_table_record ON audit_logs(table_name, record_id);
+
+-- Fast user activity tracking
+CREATE INDEX idx_audit_logs_user_activity ON audit_logs(changed_by, changed_at);
+
+-- =========================================================
 -- USERS INDEXES
 -- =========================================================
 CREATE INDEX idx_users_email ON users(email);
