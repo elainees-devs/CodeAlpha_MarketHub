@@ -7,6 +7,7 @@ export {userService} from "./user.service";
 export {roleService} from "./role.service";
 export {userRoleService} from "./userRole.service";
 export {orderService} from "./order.service";
+export {orderItemService} from "./orderItem.service";
 export {cartItemService} from "./cartItem.service";
 export {cartService} from "./cart.service";
 export {paymentService} from "./payment.service";
