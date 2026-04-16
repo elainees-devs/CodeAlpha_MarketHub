@@ -10,6 +10,7 @@ DROP TABLE IF EXISTS cart_items CASCADE;
 DROP TABLE IF EXISTS carts CASCADE;
 DROP TABLE IF EXISTS product_images CASCADE;
 DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS discounts CASCADE;
 DROP TABLE IF EXISTS subcategories CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
 
@@ -19,6 +20,8 @@ DROP TABLE IF EXISTS user_roles CASCADE;
 DROP TABLE IF EXISTS permissions CASCADE;
 DROP TABLE IF EXISTS roles CASCADE;
 
+DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS vendors CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
 DROP TYPE IF EXISTS order_status CASCADE;
@@ -65,11 +68,13 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 deleted_at TIMESTAMP NULL
 );
 
+CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_name ON users(name);
 CREATE INDEX idx_users_deleted_at ON users(deleted_at);
+CREATE INDEX idx_users_active ON users(email) WHERE deleted_at IS NULL;
 
 -- =========================================================
--- RBAC SYSTEM
+-- RBAC
 -- =========================================================
 
 CREATE TABLE roles (
@@ -132,7 +137,25 @@ UNIQUE(name, category_id)
 );
 
 CREATE INDEX idx_subcategories_category_id ON subcategories(category_id);
+CREATE INDEX idx_subcategories_name ON subcategories(name);
 CREATE INDEX idx_subcategories_deleted_at ON subcategories(deleted_at);
+
+-- =========================================================
+-- VENDORS
+-- =========================================================
+
+CREATE TABLE vendors (
+id SERIAL PRIMARY KEY,
+user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+business_name TEXT,
+description TEXT,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+deleted_at TIMESTAMP NULL
+);
+
+CREATE INDEX idx_vendors_user_id ON vendors(user_id);
+CREATE INDEX idx_vendors_business_name ON vendors(business_name);
+CREATE INDEX idx_vendors_deleted_at ON vendors(deleted_at);
 
 -- =========================================================
 -- PRODUCTS
@@ -140,6 +163,7 @@ CREATE INDEX idx_subcategories_deleted_at ON subcategories(deleted_at);
 
 CREATE TABLE products (
 id SERIAL PRIMARY KEY,
+vendor_id INTEGER REFERENCES vendors(id) ON DELETE SET NULL,
 name TEXT NOT NULL,
 description TEXT,
 price DECIMAL(10,2) NOT NULL CHECK (price >= 0),
@@ -149,11 +173,13 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 deleted_at TIMESTAMP NULL
 );
 
+CREATE INDEX idx_products_vendor_id ON products(vendor_id);
 CREATE INDEX idx_products_subcategory_id ON products(subcategory_id);
 CREATE INDEX idx_products_price ON products(price);
 CREATE INDEX idx_products_stock ON products(stock);
 CREATE INDEX idx_products_name ON products(name);
 CREATE INDEX idx_products_deleted_at ON products(deleted_at);
+CREATE INDEX idx_products_storefront ON products(subcategory_id, price) WHERE deleted_at IS NULL;
 
 -- =========================================================
 -- PRODUCT IMAGES
@@ -170,6 +196,31 @@ deleted_at TIMESTAMP NULL
 );
 
 CREATE INDEX idx_product_images_product_id ON product_images(product_id);
+CREATE INDEX idx_product_images_main ON product_images(product_id, is_main);
+
+-- =========================================================
+-- DISCOUNTS
+-- =========================================================
+
+CREATE TABLE discounts (
+id SERIAL PRIMARY KEY,
+product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+vendor_id INTEGER REFERENCES vendors(id) ON DELETE CASCADE,
+
+type TEXT NOT NULL CHECK (type IN ('PERCENTAGE', 'FIXED')),
+value DECIMAL(10,2) NOT NULL CHECK (value >= 0),
+
+start_date TIMESTAMP NOT NULL,
+end_date TIMESTAMP NOT NULL,
+
+is_active BOOLEAN DEFAULT TRUE,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_discounts_product_id ON discounts(product_id);
+CREATE INDEX idx_discounts_vendor_id ON discounts(vendor_id);
+CREATE INDEX idx_discounts_active ON discounts(is_active, start_date, end_date);
+CREATE INDEX idx_discounts_active_window ON discounts(is_active, start_date, end_date);
 
 -- =========================================================
 -- CARTS
@@ -184,9 +235,10 @@ deleted_at TIMESTAMP NULL
 );
 
 CREATE INDEX idx_carts_user_id ON carts(user_id);
+CREATE INDEX idx_carts_session_id ON carts(session_id);
 
 -- =========================================================
--- CART ITEMS (FIXED)
+-- CART ITEMS
 -- =========================================================
 
 CREATE TABLE cart_items (
@@ -201,6 +253,7 @@ UNIQUE(cart_id, product_id)
 
 CREATE INDEX idx_cart_items_cart_id ON cart_items(cart_id);
 CREATE INDEX idx_cart_items_product_id ON cart_items(product_id);
+CREATE INDEX idx_cart_items_active ON cart_items(cart_id, deleted_at);
 
 -- =========================================================
 -- ORDERS
@@ -222,6 +275,7 @@ deleted_at TIMESTAMP NULL
 CREATE INDEX idx_orders_user_id ON orders(user_id);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_created_at ON orders(created_at);
+CREATE INDEX idx_orders_user_status_time ON orders(user_id, status, created_at);
 
 -- =========================================================
 -- ORDER ITEMS
@@ -239,6 +293,7 @@ deleted_at TIMESTAMP NULL
 
 CREATE INDEX idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX idx_order_items_product_id ON order_items(product_id);
+CREATE INDEX idx_order_items_product_stats ON order_items(product_id, quantity);
 
 -- =========================================================
 -- PAYMENTS
@@ -255,6 +310,11 @@ attempt_count INT DEFAULT 1,
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX idx_payments_order_id ON payments(order_id);
+CREATE INDEX idx_payments_status ON payments(status);
+CREATE INDEX idx_payments_provider ON payments(provider);
+CREATE INDEX idx_payments_transaction_ref ON payments(transaction_ref);
+
 -- =========================================================
 -- SHIPMENTS
 -- =========================================================
@@ -270,137 +330,29 @@ tracking_number TEXT UNIQUE,
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX idx_shipments_order_id ON shipments(order_id);
+CREATE INDEX idx_shipments_status ON shipments(status);
+CREATE INDEX idx_shipments_tracking ON shipments(tracking_number);
+
 -- =========================================================
 -- AUDIT LOGS
 -- =========================================================
 
 CREATE TABLE audit_logs (
 id SERIAL PRIMARY KEY,
-
 table_name TEXT NOT NULL,
 record_id INTEGER NOT NULL,
-
 action TEXT NOT NULL CHECK (action IN ('INSERT', 'UPDATE', 'DELETE')),
-
 changed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-
 changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
 old_data JSONB,
 new_data JSONB
 );
-
--- =========================================================
--- AUDIT LOG INDEXES
--- =========================================================
 
 CREATE INDEX idx_audit_logs_table_name ON audit_logs(table_name);
 CREATE INDEX idx_audit_logs_record_id ON audit_logs(record_id);
 CREATE INDEX idx_audit_logs_changed_by ON audit_logs(changed_by);
 CREATE INDEX idx_audit_logs_action ON audit_logs(action);
 CREATE INDEX idx_audit_logs_changed_at ON audit_logs(changed_at);
-
--- Fast lookup: see history of a specific record
 CREATE INDEX idx_audit_logs_table_record ON audit_logs(table_name, record_id);
-
--- Fast user activity tracking
 CREATE INDEX idx_audit_logs_user_activity ON audit_logs(changed_by, changed_at);
-
--- =========================================================
--- USERS INDEXES
--- =========================================================
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_name ON users(name);
-CREATE INDEX idx_users_deleted_at ON users(deleted_at);
-CREATE INDEX idx_users_active ON users(email) WHERE deleted_at IS NULL;
--- =========================================================
--- RBAC INDEXES
--- ==========================================================
-CREATE INDEX idx_roles_name ON roles(name);
-
-CREATE INDEX idx_permissions_name ON permissions(name);
-
-CREATE INDEX idx_role_permissions_role_id ON role_permissions(role_id);
-CREATE INDEX idx_role_permissions_permission_id ON role_permissions(permission_id);
-
-CREATE INDEX idx_user_roles_user_id ON user_roles(user_id);
-CREATE INDEX idx_user_roles_role_id ON user_roles(role_id);
-
-CREATE INDEX idx_user_permissions_user_id ON user_permissions(user_id);
-CREATE INDEX idx_user_permissions_permission_id ON user_permissions(permission_id);
-
--- =========================================================
--- CATEGORIES INDEXES
--- ==========================================================
-CREATE INDEX idx_categories_name ON categories(name);
-CREATE INDEX idx_categories_deleted_at ON categories(deleted_at);
-CREATE INDEX idx_categories_active ON categories(name) WHERE deleted_at IS NULL;
--- =========================================================
--- SUBCATEGORIES INDEXES
--- ==========================================================
-CREATE INDEX idx_subcategories_category_id ON subcategories(category_id);
-CREATE INDEX idx_subcategories_name ON subcategories(name);
-CREATE INDEX idx_subcategories_deleted_at ON subcategories(deleted_at);
-CREATE INDEX idx_subcategories_unique_lookup ON subcategories(category_id, name);
--- =========================================================
--- PRODUCTS INDEXES
--- ==========================================================
-CREATE INDEX idx_products_subcategory_id ON products(subcategory_id);
-CREATE INDEX idx_products_price ON products(price);
-CREATE INDEX idx_products_stock ON products(stock);
-CREATE INDEX idx_products_name ON products(name);
-CREATE INDEX idx_products_deleted_at ON products(deleted_at);
-
--- Fast storefront browsing (VERY IMPORTANT)
-CREATE INDEX idx_products_storefront ON products(subcategory_id, price)
-WHERE deleted_at IS NULL;
-
--- Optional: search optimization
-CREATE INDEX idx_products_name_search ON products(name);
--- =========================================================
--- PRODUCT IMAGES INDEXES
--- =========================================================
-CREATE INDEX idx_product_images_product_id ON product_images(product_id);
-CREATE INDEX idx_product_images_main ON product_images(product_id, is_main);
--- =========================================================
--- CARTS INDEXES
--- =========================================================
-CREATE INDEX idx_carts_user_id ON carts(user_id);
-CREATE INDEX idx_carts_session_id ON carts(session_id);
-CREATE INDEX idx_carts_deleted_at ON carts(deleted_at);
--- =========================================================
--- CART ITEMS INDEXES
--- ==========================================================
-CREATE INDEX idx_cart_items_cart_id ON cart_items(cart_id);
-CREATE INDEX idx_cart_items_product_id ON cart_items(product_id);
-
--- Fast cart loading
-CREATE INDEX idx_cart_items_cart_active ON cart_items(cart_id, deleted_at);
--- =========================================================
--- ORDERS INDEXES
--- ==========================================================
-CREATE INDEX idx_orders_user_id ON orders(user_id);
-CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_orders_created_at ON orders(created_at);
-CREATE INDEX idx_orders_user_status ON orders(user_id, status);
--- =========================================================
--- ORDER ITEMS INDEXES
--- ==========================================================
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
-CREATE INDEX idx_order_items_product_id ON order_items(product_id);
-
--- Analytics (what sells most)
-CREATE INDEX idx_order_items_product_stats ON order_items(product_id, quantity);
--- =========================================================
--- PAYMENTS INDEXES
--- ==========================================================
-CREATE INDEX idx_payments_order_id ON payments(order_id);
-CREATE INDEX idx_payments_status ON payments(status);
-CREATE INDEX idx_payments_provider ON payments(provider);
-CREATE INDEX idx_payments_transaction_ref ON payments(transaction_ref);
--- =========================================================
--- SHIPMENTS INDEXES
--- ==========================================================
-CREATE INDEX idx_shipments_order_id ON shipments(order_id);
-CREATE INDEX idx_shipments_status ON shipments(status);
-CREATE INDEX idx_shipments_tracking ON shipments(tracking_number);

@@ -3,10 +3,9 @@
 -- =========================================================
 INSERT INTO users (name, email, password_hash)
 VALUES
-('Admin User', 'admin@shop.com', '$2b$10$FLxn1/eGhgIwR31m/lCy/OzySJvteMs1JCT7fx0nMMbCZI1O/c7A.'), -- hashed_password 1 
-('John Doe', 'john@example.com', '$2b$10$4mpdMD9SGfUcX6p0BZNv4OUwurlZgeZJvdvc0WjzXltwEthYjixQy'), -- hashed_password 2 
-('Jane Smith', 'jane@example.com', '$2b$10$2B7Oiiu5U7JLOKLymN20CuDMNhfhHzK90pEpohc/3oXtJQPEwlp5K'), -- hashed_password 3 
-('Michael Kim', 'michael@example.com', '$2b$10$YwTYnWPXUwUfuWRgFa5vDurspBsjtAuE7QyxyjPg6fDsOOSeqZia.'); -- hashed_password 4 
+('John Doe', 'john@example.com', 'hashed_pw_1'),
+('Jane Vendor', 'jane@shop.com', 'hashed_pw_2'),
+('Mike Admin', 'admin@store.com', 'hashed_pw_3');
 
 -- =========================================================
 -- ROLES
@@ -15,17 +14,16 @@ INSERT INTO roles (name, description)
 VALUES
 ('ADMIN', 'System administrator'),
 ('CUSTOMER', 'Regular customer'),
-('STAFF', 'Store staff');
+('VENDOR', 'Store vendor');
 
 -- =========================================================
 -- USER ROLES
 -- =========================================================
 INSERT INTO user_roles (user_id, role_id)
 VALUES
-(1, 1),
-(2, 2),
-(3, 2),
-(4, 2);
+(1, 2),
+(2, 3),
+(3, 1);
 
 -- =========================================================
 -- PERMISSIONS
@@ -47,6 +45,24 @@ VALUES
 (3, 3);
 
 -- =========================================================
+-- USER PERMISSIONS
+-- =========================================================
+INSERT INTO user_permissions (user_id, permission_id)
+VALUES
+(3, 1),
+(3, 2),
+(3, 3),
+(2, 1),
+(2, 3);
+
+-- =========================================================
+-- VENDORS
+-- =========================================================
+INSERT INTO vendors (user_id, business_name, description)
+VALUES
+(2, 'Jane Fashion Store', 'Trendy fashion and accessories');
+
+-- =========================================================
 -- CATEGORIES
 -- =========================================================
 INSERT INTO categories (name)
@@ -64,55 +80,44 @@ VALUES
 ('Laptops', 1),
 ('Men Clothing', 2),
 ('Women Clothing', 2),
-('Cookware', 3);
+('Kitchen Appliances', 3);
 
 -- =========================================================
 -- PRODUCTS
 -- =========================================================
-INSERT INTO products (name, description, price, stock, subcategory_id)
+INSERT INTO products (vendor_id, name, description, price, stock, subcategory_id)
 VALUES
-('iPhone 14', 'Latest Apple smartphone with A15 chip', 999.99, 10, 1),
-('Samsung Galaxy S23', 'Flagship Android phone', 899.99, 15, 1),
-('MacBook Air M2', 'Lightweight Apple laptop', 1299.99, 8, 2),
-('Dell XPS 13', 'Premium Windows laptop', 1199.99, 12, 2),
-('Nike Air Force 1', 'Classic sneakers', 120.00, 50, 3),
-('Levi Jeans', 'Slim fit denim jeans', 80.00, 40, 3),
-('Cooking Pan Set', 'Non-stick cookware set', 150.00, 25, 5);
+(1, 'iPhone 14 Pro', 'Latest Apple smartphone', 1200.00, 10, 1),
+(1, 'MacBook Air M2', 'Lightweight Apple laptop', 1500.00, 5, 2),
+(1, 'Nike Air Max', 'Comfortable running shoes', 120.00, 50, 3),
+(1, 'Women Summer Dress', 'Elegant summer dress', 45.00, 30, 4),
+(1, 'Air Fryer XL', 'Healthy cooking appliance', 90.00, 20, 5);
 
 -- =========================================================
--- PRODUCT IMAGES (ONLINE LINKS)
+-- PRODUCT IMAGES
 -- =========================================================
 INSERT INTO product_images (product_id, image_url, is_main, position)
 VALUES
--- iPhone 14
-(1, 'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb', TRUE, 1),
-(1, 'https://images.unsplash.com/photo-1603898037225-1c9e3f1c6b3a', FALSE, 2),
+(1, 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=800&q=80', TRUE, 1),
+(2, 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80', TRUE, 1),
+(3, 'https://images.unsplash.com/photo-1528701800489-20be3c3ea1c2?auto=format&fit=crop&w=800&q=80', TRUE, 1),
+(4, 'https://images.unsplash.com/photo-1520975958225-3f61d4f3f9f5?auto=format&fit=crop&w=800&q=80', TRUE, 1),
+(5, 'https://images.unsplash.com/photo-1604908177522-0408f2f3f9f5?auto=format&fit=crop&w=800&q=80', TRUE, 1);
 
--- Samsung S23
-(2, 'https://images.unsplash.com/photo-1678685888221-cda773a3dcdb?2', TRUE, 1),
-
--- MacBook
-(3, 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8', TRUE, 1),
-
--- Dell XPS
-(4, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45', TRUE, 1),
-
--- Nike Shoes
-(5, 'https://images.unsplash.com/photo-1606813907291-d86efa9b94db', TRUE, 1),
-
--- Jeans
-(6, 'https://images.unsplash.com/photo-1604176354204-9268737828e4', TRUE, 1),
-
--- Cookware
-(7, 'https://images.unsplash.com/photo-1586201375761-83865001e31c', TRUE, 1);
+-- =========================================================
+-- DISCOUNTS
+-- =========================================================
+INSERT INTO discounts (product_id, vendor_id, type, value, start_date, end_date)
+VALUES
+(1, 1, 'PERCENTAGE', 10, NOW(), NOW() + INTERVAL '30 days'),
+(3, 1, 'FIXED', 15, NOW(), NOW() + INTERVAL '15 days');
 
 -- =========================================================
 -- CARTS
 -- =========================================================
 INSERT INTO carts (user_id, session_id)
 VALUES
-(2, NULL),
-(3, NULL);
+(1, NULL);
 
 -- =========================================================
 -- CART ITEMS
@@ -120,37 +125,41 @@ VALUES
 INSERT INTO cart_items (cart_id, product_id, quantity)
 VALUES
 (1, 1, 1),
-(1, 5, 2),
-(2, 3, 1);
+(1, 3, 2);
 
 -- =========================================================
 -- ORDERS
 -- =========================================================
 INSERT INTO orders (user_id, total, status, shipping_address, phone, customer_name, customer_email)
 VALUES
-(2, 1199.99, 'PENDING', 'Nairobi CBD, Kenya', '+254700111222', 'John Doe', 'john@example.com'),
-(3, 120.00, 'CONFIRMED', 'Westlands, Nairobi', '+254711222333', 'Jane Smith', 'jane@example.com');
+(1, 1230.00, 'PENDING', 'Nairobi, Kenya', '+254700000000', 'John Doe', 'john@example.com');
 
 -- =========================================================
 -- ORDER ITEMS
 -- =========================================================
 INSERT INTO order_items (order_id, product_id, quantity, price)
 VALUES
-(1, 4, 1, 1199.99),
-(2, 5, 1, 120.00);
+(1, 1, 1, 1200.00),
+(1, 3, 1, 30.00);
 
 -- =========================================================
 -- PAYMENTS
 -- =========================================================
-INSERT INTO payments (order_id, provider, amount, status, transaction_ref)
+INSERT INTO payments (order_id, provider, amount, status, transaction_ref, attempt_count)
 VALUES
-(1, 'MPESA', 1199.99, 'PENDING', 'MPESA_TXN_001'),
-(2, 'STRIPE', 120.00, 'COMPLETED', 'STRIPE_TXN_002');
+(1, 'MPESA', 1230.00, 'PENDING', 'TXN_001', 1);
 
 -- =========================================================
 -- SHIPMENTS
 -- =========================================================
 INSERT INTO shipments (order_id, address, city, phone, status, tracking_number)
 VALUES
-(1, 'Nairobi CBD, Kenya', 'Nairobi', '+254700111222', 'PENDING', 'TRK123456KEN'),
-(2, 'Westlands, Nairobi', 'Nairobi', '+254711222333', 'SHIPPED', 'TRK654321KEN');
+(1, 'Nairobi, Kenya', 'Nairobi', '+254700000000', 'PENDING', 'TRK_001');
+
+-- =========================================================
+-- AUDIT LOGS
+-- =========================================================
+INSERT INTO audit_logs (table_name, record_id, action, changed_by, old_data, new_data)
+VALUES
+('products', 1, 'INSERT', 3, NULL, '{"name":"iPhone 14 Pro"}'),
+('orders', 1, 'INSERT', 1, NULL, '{"status":"PENDING"}');
