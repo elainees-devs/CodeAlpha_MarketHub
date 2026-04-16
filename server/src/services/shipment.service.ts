@@ -78,4 +78,4 @@ class ShipmentService {
   }
 }
 
-export default new ShipmentService();
+export const shipmentService = new ShipmentService();
