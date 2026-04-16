@@ -40,6 +40,10 @@ export {
 export { OrderEntity, mapOrder } from "./order.mapper";
 export { OrderItemEntity, mapOrderItem } from "./orderItem.mapper";
 
+// Cart and cart item related mappers
+export { CartEntity, mapCart } from "./cart.mapper";
+export { CartItemEntity, mapCartItem } from "./cartItem.mapper";
+
 // Payment related mappers
 export { PaymentEntity, mapPayment } from "./payment.mapper";
 
