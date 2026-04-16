@@ -13,7 +13,6 @@ model cart_items {
   product_id Int?
   quantity   Int
   created_at DateTime? @default(now()) @db.Timestamp(6)
-  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at DateTime? @db.Timestamp(6)
   carts      carts?    @relation(fields: [cart_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   products   products? @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -29,7 +28,6 @@ model carts {
   user_id    Int?         @unique
   session_id String?      @unique
   created_at DateTime?    @default(now()) @db.Timestamp(6)
-  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at DateTime?    @db.Timestamp(6)
   cart_items cart_items[]
   users      users?       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -43,7 +41,6 @@ model categories {
   id            Int             @id @default(autoincrement())
   name          String          @unique
   created_at    DateTime?       @default(now()) @db.Timestamp(6)
-  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at    DateTime?       @db.Timestamp(6)
   subcategories subcategories[]
 
@@ -58,7 +55,6 @@ model order_items {
   quantity   Int
   price      Decimal   @db.Decimal(10, 2)
   created_at DateTime? @default(now()) @db.Timestamp(6)
-  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at DateTime? @db.Timestamp(6)
   orders     orders?   @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   products   products? @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -78,7 +74,6 @@ model orders {
   customer_name    String?
   customer_email   String?
   created_at       DateTime?     @default(now()) @db.Timestamp(6)
-  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at       DateTime?     @db.Timestamp(6)
   order_items      order_items[]
   users            users?        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -100,7 +95,6 @@ model payments {
   transaction_ref String?          @unique
   attempt_count   Int?             @default(1)
   created_at      DateTime?        @default(now()) @db.Timestamp(6)
-  updated_at DateTime     @updatedAt @db.Timestamp(6)
   orders          orders?          @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([order_id], map: "idx_payments_order_id")
@@ -114,7 +108,6 @@ model permissions {
   name             String             @unique
   description      String?
   created_at       DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at DateTime     @updatedAt @db.Timestamp(6)
   role_permissions role_permissions[]
   user_permissions user_permissions[]
 
@@ -128,7 +121,6 @@ model product_images {
   is_main    Boolean?  @default(false)
   position   Int?      @default(0)
   created_at DateTime? @default(now()) @db.Timestamp(6)
-  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at DateTime? @db.Timestamp(6)
   products   products? @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -144,7 +136,6 @@ model products {
   stock          Int              @default(0)
   subcategory_id Int?
   created_at     DateTime?        @default(now()) @db.Timestamp(6)
-  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at     DateTime?        @db.Timestamp(6)
   cart_items     cart_items[]
   order_items    order_items[]
@@ -175,7 +166,6 @@ model roles {
   name             String             @unique
   description      String?
   created_at       DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at DateTime     @updatedAt @db.Timestamp(6)
   role_permissions role_permissions[]
   user_roles       user_roles[]
 
@@ -203,7 +193,6 @@ model subcategories {
   name        String
   category_id Int?
   created_at  DateTime?   @default(now()) @db.Timestamp(6)
-  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at  DateTime?   @db.Timestamp(6)
   products    products[]
   categories  categories? @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -243,8 +232,8 @@ model users {
   email            String             @unique
   password_hash    String
   created_at       DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at       DateTime           @updatedAt @db.Timestamp(6)
   deleted_at       DateTime?          @db.Timestamp(6)
+  audit_logs       audit_logs[]
   carts            carts?
   orders           orders[]
   user_permissions user_permissions[]
@@ -253,6 +242,26 @@ model users {
   @@index([deleted_at], map: "idx_users_deleted_at")
   @@index([email], map: "idx_users_email")
   @@index([name], map: "idx_users_name")
+}
+
+model audit_logs {
+  id         Int       @id @default(autoincrement())
+  table_name String
+  record_id  Int
+  action     String
+  changed_by Int?
+  changed_at DateTime? @default(now()) @db.Timestamp(6)
+  old_data   Json?
+  new_data   Json?
+  users      users?    @relation(fields: [changed_by], references: [id], onUpdate: NoAction)
+
+  @@index([action], map: "idx_audit_logs_action")
+  @@index([changed_at], map: "idx_audit_logs_changed_at")
+  @@index([changed_by], map: "idx_audit_logs_changed_by")
+  @@index([record_id], map: "idx_audit_logs_record_id")
+  @@index([table_name], map: "idx_audit_logs_table_name")
+  @@index([table_name, record_id], map: "idx_audit_logs_table_record")
+  @@index([changed_by, changed_at], map: "idx_audit_logs_user_activity")
 }
 
 enum order_status {
