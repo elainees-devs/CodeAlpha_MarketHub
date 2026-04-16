@@ -1,3 +1,4 @@
+import Decimal from 'decimal.js';
 /**
  * Base Entity
  */
@@ -59,31 +60,27 @@ export interface IUserPermission {
 // CATEGORIES
 export interface ICategory extends IBase {
   name: string;
-  deleted_at?: string | null;
 }
 
 export interface ISubcategory extends IBase {
   name: string;
-  category_id: number;
-  deleted_at?: string | null;
+  category_id: number | null;
 }
 
 // PRODUCTS
 export interface IProduct extends IBase {
   name: string;
   description?: string | null;
-  price: number;
+  price: Decimal;
   stock: number;
-  subcategory_id: number;
-  deleted_at?: string | null;
+  subcategory_id: number | null;
 }
 
 export interface IProductImage extends IBase {
-  product_id: number;
+  product_id: number | null;
   image_url: string;
   is_main: boolean;
   position: number;
-  deleted_at?: string | null;
 }
 
 /**
@@ -97,14 +94,12 @@ export interface IProductResponse extends IProduct {
 export interface ICart extends IBase {
   user_id?: number | null;
   session_id?: string | null;
-  deleted_at?: string | null;
 }
 
 export interface ICartItem extends IBase {
   cart_id: number;
   product_id: number;
   quantity: number;
-  deleted_at?: string | null;
 }
 
 /**
@@ -112,7 +107,7 @@ export interface ICartItem extends IBase {
  */
 export interface ICartResponse extends ICart {
   items: ICartItem[];
-  total_price: number;
+  total_price: Decimal;
 }
 
 // ORDERS
@@ -125,7 +120,7 @@ export type OrderStatus =
 
 export interface IOrder extends IBase {
   user_id: number;
-  total: number;
+  total: Decimal;
   status: OrderStatus;
   shipping_address?: string | null;
   phone?: string | null;
@@ -138,7 +133,7 @@ export interface IOrderItem extends IBase {
   order_id: number;
   product_id: number;
   quantity: number;
-  price: number;
+  price: Decimal;
   deleted_at?: string | null;
 }
 
@@ -164,21 +159,30 @@ export type PaymentProvider =
   | "PAYPAL";
 
 export interface IPayment extends IBase {
-  order_id: number;
+  order_id: number | null;
   provider: PaymentProvider;
-  amount: number;
+  amount: Decimal;
   status: PaymentStatus;
   transaction_ref?: string | null;
   attempt_count: number;
 }
 
+export type ShippmentStatus =
+  | "PENDING"
+  | "SHIPPED"
+  | "DELIVERED"
+  | "RETURNED"
+  | "CANCELLED";
+
+// SHIPMENTS
+
 // SHIPPING
 export interface IShipment extends IBase {
-  order_id: number;
+  order_id: number | null;
   address: string;
   city?: string | null;
   phone?: string | null;
-  status: string;
+  status: ShippmentStatus;
   tracking_number?: string | null;
 }
 
