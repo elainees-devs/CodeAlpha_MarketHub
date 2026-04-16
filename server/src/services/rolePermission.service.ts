@@ -63,4 +63,4 @@ class RolePermissionService {
   }
 }
 
-export default new RolePermissionService();
+export const rolePermissionService = new RolePermissionService();

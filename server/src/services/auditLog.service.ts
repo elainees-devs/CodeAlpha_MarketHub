@@ -93,4 +93,4 @@ class AuditLogService {
   }
 }
 
-export default new AuditLogService();
+export const auditLogService = new AuditLogService();
