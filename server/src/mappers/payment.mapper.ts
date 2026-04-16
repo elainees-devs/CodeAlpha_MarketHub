@@ -7,13 +7,13 @@ import { payment_provider, payment_status } from "@prisma/client";
  */
 export type PaymentEntity = {
   id: number;
-  order_id: number;
-  amount: Decimal;
+  order_id: number | null;
   provider: payment_provider;
-  status: payment_status; 
-  transaction_id: string | null;
+  amount: Decimal;
+  status: payment_status;
+  transaction_ref: string | null;
+  attempt_count: number | null;
   created_at: Date | null;
-  deleted_at: Date | null;
 };
 
 /**
@@ -26,9 +26,8 @@ export const mapPayment = (payment: PaymentEntity): IPayment => {
     amount: payment.amount,
     provider: payment.provider,
     status: payment.status,
-    transaction_id: payment.transaction_id ?? null,
-    attempt_count: 0, // Assuming attempt_count is not stored in DB, set default to 0
+    transaction_ref: payment.transaction_ref ?? null,
+    attempt_count: payment.attempt_count ?? 0,
     created_at: payment.created_at?.toISOString() ?? "",
-    deleted_at: payment.deleted_at ? payment.deleted_at.toISOString() : null,
   };
 };
