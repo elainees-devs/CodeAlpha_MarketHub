@@ -1,0 +1,271 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model cart_items {
+  id         Int       @id @default(autoincrement())
+  cart_id    Int?
+  product_id Int?
+  quantity   Int
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  deleted_at DateTime? @db.Timestamp(6)
+  carts      carts?    @relation(fields: [cart_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products   products? @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([cart_id, product_id])
+  @@index([cart_id, deleted_at], map: "idx_cart_items_cart_active")
+  @@index([cart_id], map: "idx_cart_items_cart_id")
+  @@index([product_id], map: "idx_cart_items_product_id")
+}
+
+model carts {
+  id         Int          @id @default(autoincrement())
+  user_id    Int?         @unique
+  session_id String?      @unique
+  created_at DateTime?    @default(now()) @db.Timestamp(6)
+  deleted_at DateTime?    @db.Timestamp(6)
+  cart_items cart_items[]
+  users      users?       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([deleted_at], map: "idx_carts_deleted_at")
+  @@index([session_id], map: "idx_carts_session_id")
+  @@index([user_id], map: "idx_carts_user_id")
+}
+
+model categories {
+  id            Int             @id @default(autoincrement())
+  name          String          @unique
+  created_at    DateTime?       @default(now()) @db.Timestamp(6)
+  deleted_at    DateTime?       @db.Timestamp(6)
+  subcategories subcategories[]
+
+  @@index([deleted_at], map: "idx_categories_deleted_at")
+  @@index([name], map: "idx_categories_name")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model order_items {
+  id         Int       @id @default(autoincrement())
+  order_id   Int?
+  product_id Int?
+  quantity   Int
+  price      Decimal   @db.Decimal(10, 2)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  deleted_at DateTime? @db.Timestamp(6)
+  orders     orders?   @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products   products? @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([order_id], map: "idx_order_items_order_id")
+  @@index([product_id], map: "idx_order_items_product_id")
+  @@index([product_id, quantity], map: "idx_order_items_product_stats")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model orders {
+  id               Int           @id @default(autoincrement())
+  user_id          Int?
+  total            Decimal       @db.Decimal(10, 2)
+  status           order_status? @default(PENDING)
+  shipping_address String?
+  phone            String?
+  customer_name    String?
+  customer_email   String?
+  created_at       DateTime?     @default(now()) @db.Timestamp(6)
+  deleted_at       DateTime?     @db.Timestamp(6)
+  order_items      order_items[]
+  users            users?        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  payments         payments[]
+  shipments        shipments[]
+
+  @@index([created_at], map: "idx_orders_created_at")
+  @@index([status], map: "idx_orders_status")
+  @@index([user_id], map: "idx_orders_user_id")
+  @@index([user_id, status], map: "idx_orders_user_status")
+}
+
+model payments {
+  id              Int              @id @default(autoincrement())
+  order_id        Int?
+  provider        payment_provider
+  amount          Decimal          @db.Decimal(10, 2)
+  status          payment_status   @default(PENDING)
+  transaction_ref String?          @unique
+  attempt_count   Int?             @default(1)
+  created_at      DateTime?        @default(now()) @db.Timestamp(6)
+  orders          orders?          @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([order_id], map: "idx_payments_order_id")
+  @@index([provider], map: "idx_payments_provider")
+  @@index([status], map: "idx_payments_status")
+  @@index([transaction_ref], map: "idx_payments_transaction_ref")
+}
+
+model permissions {
+  id               Int                @id @default(autoincrement())
+  name             String             @unique
+  description      String?
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  role_permissions role_permissions[]
+  user_permissions user_permissions[]
+
+  @@index([name], map: "idx_permissions_name")
+}
+
+model product_images {
+  id         Int       @id @default(autoincrement())
+  product_id Int?
+  image_url  String
+  is_main    Boolean?  @default(false)
+  position   Int?      @default(0)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  deleted_at DateTime? @db.Timestamp(6)
+  products   products? @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([product_id, is_main], map: "idx_product_images_main")
+  @@index([product_id], map: "idx_product_images_product_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model products {
+  id             Int              @id @default(autoincrement())
+  name           String
+  description    String?
+  price          Decimal          @db.Decimal(10, 2)
+  stock          Int              @default(0)
+  subcategory_id Int?
+  created_at     DateTime?        @default(now()) @db.Timestamp(6)
+  deleted_at     DateTime?        @db.Timestamp(6)
+  cart_items     cart_items[]
+  order_items    order_items[]
+  product_images product_images[]
+  subcategories  subcategories?   @relation(fields: [subcategory_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([deleted_at], map: "idx_products_deleted_at")
+  @@index([name], map: "idx_products_name")
+  @@index([name], map: "idx_products_name_search")
+  @@index([price], map: "idx_products_price")
+  @@index([stock], map: "idx_products_stock")
+  @@index([subcategory_id], map: "idx_products_subcategory_id")
+}
+
+model role_permissions {
+  role_id       Int
+  permission_id Int
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  roles         roles       @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([role_id, permission_id])
+  @@index([permission_id], map: "idx_role_permissions_permission_id")
+  @@index([role_id], map: "idx_role_permissions_role_id")
+}
+
+model roles {
+  id               Int                @id @default(autoincrement())
+  name             String             @unique
+  description      String?
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  role_permissions role_permissions[]
+  user_roles       user_roles[]
+
+  @@index([name], map: "idx_roles_name")
+}
+
+model shipments {
+  id              Int       @id @default(autoincrement())
+  order_id        Int?
+  address         String
+  city            String?
+  phone           String?
+  status          String?   @default("PENDING")
+  tracking_number String?   @unique
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  orders          orders?   @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([order_id], map: "idx_shipments_order_id")
+  @@index([status], map: "idx_shipments_status")
+  @@index([tracking_number], map: "idx_shipments_tracking")
+}
+
+model subcategories {
+  id          Int         @id @default(autoincrement())
+  name        String
+  category_id Int?
+  created_at  DateTime?   @default(now()) @db.Timestamp(6)
+  deleted_at  DateTime?   @db.Timestamp(6)
+  products    products[]
+  categories  categories? @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([name, category_id])
+  @@index([category_id], map: "idx_subcategories_category_id")
+  @@index([deleted_at], map: "idx_subcategories_deleted_at")
+  @@index([name], map: "idx_subcategories_name")
+  @@index([category_id, name], map: "idx_subcategories_unique_lookup")
+}
+
+model user_permissions {
+  user_id       Int
+  permission_id Int
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users         users       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, permission_id])
+  @@index([permission_id], map: "idx_user_permissions_permission_id")
+  @@index([user_id], map: "idx_user_permissions_user_id")
+}
+
+model user_roles {
+  user_id Int
+  role_id Int
+  roles   roles @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users   users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, role_id])
+  @@index([role_id], map: "idx_user_roles_role_id")
+  @@index([user_id], map: "idx_user_roles_user_id")
+}
+
+model users {
+  id               Int                @id @default(autoincrement())
+  name             String
+  email            String             @unique
+  password_hash    String
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  deleted_at       DateTime?          @db.Timestamp(6)
+  carts            carts?
+  orders           orders[]
+  user_permissions user_permissions[]
+  user_roles       user_roles[]
+
+  @@index([deleted_at], map: "idx_users_deleted_at")
+  @@index([email], map: "idx_users_email")
+  @@index([name], map: "idx_users_name")
+}
+
+enum order_status {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum payment_provider {
+  STRIPE
+  MPESA
+  PAYPAL
+}
+
+enum payment_status {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
