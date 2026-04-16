@@ -9,13 +9,17 @@ datasource db {
 
 model cart_items {
   id         Int       @id @default(autoincrement())
-  cart_id    Int?
-  product_id Int?
+
+  cart_id    Int
+  product_id Int
+
   quantity   Int
-  created_at DateTime? @default(now()) @db.Timestamp(6)
+
+  created_at DateTime  @default(now()) @db.Timestamp(6)
   deleted_at DateTime? @db.Timestamp(6)
-  carts      carts?    @relation(fields: [cart_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  products   products? @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  carts    carts    @relation(fields: [cart_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products products @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([cart_id, product_id])
   @@index([cart_id, deleted_at], map: "idx_cart_items_cart_active")
@@ -165,9 +169,9 @@ model roles {
   id               Int                @id @default(autoincrement())
   name             String             @unique
   description      String?
-  created_at       DateTime?          @default(now()) @db.Timestamp(6)
   role_permissions role_permissions[]
   user_roles       user_roles[]
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
 
   @@index([name], map: "idx_roles_name")
 }
