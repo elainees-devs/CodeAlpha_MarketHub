@@ -28,7 +28,7 @@ export {
 } from "./product.mapper";
 
 // Category and subcategory related mappers
-export { CategoryEntity, mapCategory } from "./category.mapper";
+export { CategoryEntity, mapCategory, mapCategoryResponse } from "./category.mapper";
 export {
   SubcategoryEntity,
   mapSubcategory,
