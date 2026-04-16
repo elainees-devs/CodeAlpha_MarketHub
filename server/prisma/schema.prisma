@@ -7,13 +7,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model cart_items {
   id         Int       @id @default(autoincrement())
   cart_id    Int?
   product_id Int?
   quantity   Int
   created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at DateTime? @db.Timestamp(6)
   carts      carts?    @relation(fields: [cart_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   products   products? @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -29,6 +29,7 @@ model carts {
   user_id    Int?         @unique
   session_id String?      @unique
   created_at DateTime?    @default(now()) @db.Timestamp(6)
+  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at DateTime?    @db.Timestamp(6)
   cart_items cart_items[]
   users      users?       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -42,6 +43,7 @@ model categories {
   id            Int             @id @default(autoincrement())
   name          String          @unique
   created_at    DateTime?       @default(now()) @db.Timestamp(6)
+  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at    DateTime?       @db.Timestamp(6)
   subcategories subcategories[]
 
@@ -49,7 +51,6 @@ model categories {
   @@index([name], map: "idx_categories_name")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model order_items {
   id         Int       @id @default(autoincrement())
   order_id   Int?
@@ -57,6 +58,7 @@ model order_items {
   quantity   Int
   price      Decimal   @db.Decimal(10, 2)
   created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at DateTime? @db.Timestamp(6)
   orders     orders?   @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   products   products? @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -66,7 +68,6 @@ model order_items {
   @@index([product_id, quantity], map: "idx_order_items_product_stats")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model orders {
   id               Int           @id @default(autoincrement())
   user_id          Int?
@@ -77,6 +78,7 @@ model orders {
   customer_name    String?
   customer_email   String?
   created_at       DateTime?     @default(now()) @db.Timestamp(6)
+  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at       DateTime?     @db.Timestamp(6)
   order_items      order_items[]
   users            users?        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -98,6 +100,7 @@ model payments {
   transaction_ref String?          @unique
   attempt_count   Int?             @default(1)
   created_at      DateTime?        @default(now()) @db.Timestamp(6)
+  updated_at DateTime     @updatedAt @db.Timestamp(6)
   orders          orders?          @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([order_id], map: "idx_payments_order_id")
@@ -111,6 +114,7 @@ model permissions {
   name             String             @unique
   description      String?
   created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at DateTime     @updatedAt @db.Timestamp(6)
   role_permissions role_permissions[]
   user_permissions user_permissions[]
 
@@ -124,6 +128,7 @@ model product_images {
   is_main    Boolean?  @default(false)
   position   Int?      @default(0)
   created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at DateTime? @db.Timestamp(6)
   products   products? @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -131,7 +136,6 @@ model product_images {
   @@index([product_id], map: "idx_product_images_product_id")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model products {
   id             Int              @id @default(autoincrement())
   name           String
@@ -140,6 +144,7 @@ model products {
   stock          Int              @default(0)
   subcategory_id Int?
   created_at     DateTime?        @default(now()) @db.Timestamp(6)
+  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at     DateTime?        @db.Timestamp(6)
   cart_items     cart_items[]
   order_items    order_items[]
@@ -170,6 +175,7 @@ model roles {
   name             String             @unique
   description      String?
   created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at DateTime     @updatedAt @db.Timestamp(6)
   role_permissions role_permissions[]
   user_roles       user_roles[]
 
@@ -197,6 +203,7 @@ model subcategories {
   name        String
   category_id Int?
   created_at  DateTime?   @default(now()) @db.Timestamp(6)
+  updated_at DateTime     @updatedAt @db.Timestamp(6)
   deleted_at  DateTime?   @db.Timestamp(6)
   products    products[]
   categories  categories? @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -236,6 +243,7 @@ model users {
   email            String             @unique
   password_hash    String
   created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime           @updatedAt @db.Timestamp(6)
   deleted_at       DateTime?          @db.Timestamp(6)
   carts            carts?
   orders           orders[]
