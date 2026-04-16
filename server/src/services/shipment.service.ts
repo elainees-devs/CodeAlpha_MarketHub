@@ -1,5 +1,5 @@
 import { prisma } from "../utils";
-import { IShipment, ShippmentStatus } from "../types/interfaces.types";
+import { IShipment, ShipmentStatus } from "../types/interfaces.types";
 import { mapShipment, ShipmentEntity } from "../mappers";
 
 class ShipmentService {
@@ -56,7 +56,7 @@ class ShipmentService {
   // =====================================================
   async updateShipmentStatus(
     id: number,
-    status: ShippmentStatus
+    status: ShipmentStatus
   ): Promise<IShipment> {
     const shipment = await prisma.shipments.update({
       where: { id },
