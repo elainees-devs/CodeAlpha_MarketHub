@@ -6,9 +6,13 @@ class CategoryController {
   // =====================================================
   // CREATE CATEGORY
   // =====================================================
-  async create(req: Request, res: Response, next: NextFunction) {
+  async createCategory(req: Request, res: Response, next: NextFunction) {
     try {
       const { name } = req.body;
+
+      if (!name) {
+        return next(new ApiError(400, "Category name is required"));
+      }
 
       const category = await categoryService.create(name);
 
@@ -25,7 +29,7 @@ class CategoryController {
   // =====================================================
   // GET ALL CATEGORIES
   // =====================================================
-  async getAll(req: Request, res: Response, next: NextFunction) {
+  async getAllCategories(req: Request, res: Response, next: NextFunction) {
     try {
       const categories = await categoryService.getAll();
 
@@ -41,9 +45,13 @@ class CategoryController {
   // =====================================================
   // GET CATEGORY BY ID
   // =====================================================
-  async getById(req: Request, res: Response, next: NextFunction) {
+  async getCategoryById(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
+
+      if (!id) {
+        return next(new ApiError(400, "Category ID is required"));
+      }
 
       const category = await categoryService.getById(Number(id));
 
@@ -59,17 +67,28 @@ class CategoryController {
   // =====================================================
   // UPDATE CATEGORY
   // =====================================================
-  async update(req: Request, res: Response, next: NextFunction) {
+  async updateCategory(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
       const { name } = req.body;
 
-      const updated = await categoryService.update(Number(id), name);
+      if (!id) {
+        return next(new ApiError(400, "Category ID is required"));
+      }
+
+      if (!name) {
+        return next(new ApiError(400, "Category name is required"));
+      }
+
+      const updatedCategory = await categoryService.update(
+        Number(id),
+        name
+      );
 
       return res.status(200).json({
         success: true,
         message: "Category updated successfully",
-        data: updated,
+        data: updatedCategory,
       });
     } catch (error: any) {
       return next(new ApiError(400, error.message));
@@ -79,9 +98,13 @@ class CategoryController {
   // =====================================================
   // DELETE CATEGORY (SOFT DELETE)
   // =====================================================
-  async delete(req: Request, res: Response, next: NextFunction) {
+  async deleteCategory(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
+
+      if (!id) {
+        return next(new ApiError(400, "Category ID is required"));
+      }
 
       await categoryService.delete(Number(id));
 
