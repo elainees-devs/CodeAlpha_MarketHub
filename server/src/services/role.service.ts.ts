@@ -1,6 +1,6 @@
 import { ApiError, prisma } from "../utils";
 import { IRole } from "../types/interfaces.types";
-import { mapRole,RoleEntity } from "../mappers/role.mapper";
+import { mapRole,RoleEntity } from "../mappers";
 
 class RoleService {
   // =====================================================
