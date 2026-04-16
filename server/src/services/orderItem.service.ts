@@ -105,4 +105,4 @@ class OrderItemService {
   }
 }
 
-export default new OrderItemService();
+export const orderItemService = new OrderItemService();
