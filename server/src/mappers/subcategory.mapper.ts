@@ -8,7 +8,7 @@ import { ISubcategory } from "../types/interfaces.types";
 export type SubcategoryEntity = {
   id: number;
   name: string;
-  category_id: number;
+  category_id: number | null;
   created_at: Date | null;
   deleted_at: Date | null;
 };
