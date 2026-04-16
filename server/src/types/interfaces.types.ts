@@ -1,4 +1,4 @@
-import Decimal from 'decimal.js';
+import Decimal from "decimal.js";
 /**
  * Base Entity
  */
@@ -15,7 +15,6 @@ export interface IUser extends IBase {
   name: string;
   email: string;
   password_hash: string;
- 
 }
 
 /**
@@ -153,10 +152,7 @@ export type PaymentStatus =
   | "REFUNDED"
   | "CANCELLED";
 
-export type PaymentProvider =
-  | "STRIPE"
-  | "MPESA"
-  | "PAYPAL";
+export type PaymentProvider = "STRIPE" | "MPESA" | "PAYPAL";
 
 export interface IPayment extends IBase {
   order_id: number | null;
@@ -167,14 +163,12 @@ export interface IPayment extends IBase {
   attempt_count: number;
 }
 
-export type ShippmentStatus =
+export type ShipmentStatus =
   | "PENDING"
   | "SHIPPED"
   | "DELIVERED"
   | "RETURNED"
   | "CANCELLED";
-
-// SHIPMENTS
 
 // SHIPPING
 export interface IShipment extends IBase {
@@ -182,7 +176,7 @@ export interface IShipment extends IBase {
   address: string;
   city?: string | null;
   phone?: string | null;
-  status: ShippmentStatus;
+  status: ShipmentStatus;
   tracking_number?: string | null;
 }
 
@@ -229,6 +223,7 @@ export interface IAuditLog {
 }
 
 // Authenticated user info (from JWT)
-export interface IAuthUser { // runtime representation of authenticated user
+export interface IAuthUser {
+  // runtime representation of authenticated user
   user_id: number;
 }
