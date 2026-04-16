@@ -1,236 +1,136 @@
-import { prisma, ApiError, generateUUID } from "../utils";
-import { IOrder } from "../types/interfaces.types";
-import { mapOrder, OrderEntity } from "../mappers";
+import { Request, Response, NextFunction } from "express";
+import { orderService } from "../services";
 import { order_status } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
-import { generateShortId } from "../utils/generateId";
 
-class OrderService {
+class OrderController {
   // =====================================================
   // GET ORDER BY ID
   // =====================================================
-  async getOrderById(id: number): Promise<IOrder> {
-    const order = await prisma.orders.findUnique({
-      where: { id },
-    });
+  async getOrderById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = Number(req.params.id);
 
-    if (!order) {
-      throw new ApiError(404, "Order not found");
+      const order = await orderService.getOrderById(id);
+
+      return res.status(200).json({
+        success: true,
+        message: "Order retrieved successfully",
+        data: order,
+      });
+    } catch (error) {
+      next(error);
     }
-
-    return mapOrder(order as OrderEntity);
   }
 
   // =====================================================
   // GET USER ORDERS
   // =====================================================
-  async getUserOrders(user_id: number): Promise<IOrder[]> {
-    const orders = await prisma.orders.findMany({
-      where: { user_id },
-      orderBy: { created_at: "desc" },
-    });
+  async getUserOrders(req: Request, res: Response, next: NextFunction) {
+    try {
+      const user_id = Number(req.params.userId);
 
-    return orders.map((order) => mapOrder(order as OrderEntity));
+      const orders = await orderService.getUserOrders(user_id);
+
+      return res.status(200).json({
+        success: true,
+        message: "User orders retrieved successfully",
+        data: orders,
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
   // =====================================================
   // CREATE BASE ORDER
   // =====================================================
-  async createBaseOrder(data: {
-    user_id: number;
-    total: Decimal;
-    status?: order_status;
-    shipping_address?: string;
-    phone?: string;
-    customer_name?: string;
-    customer_email?: string;
-  }): Promise<IOrder> {
-    const order = await prisma.orders.create({
-      data: {
-        user_id: data.user_id,
-        total: data.total,
-        status: data.status ?? order_status.PENDING,
-        shipping_address: data.shipping_address ?? null,
-        phone: data.phone ?? null,
-        customer_name: data.customer_name ?? null,
-        customer_email: data.customer_email ?? null,
+  async createBaseOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const order = await orderService.createBaseOrder(req.body);
 
-        // ✅ NEW IDS
-        uuid: generateUUID(),
-        order_ref: generateShortId(10),
-      },
-    });
-
-    return mapOrder(order as OrderEntity);
+      return res.status(201).json({
+        success: true,
+        message: "Order created successfully",
+        data: order,
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
   // =====================================================
   // UPDATE ORDER STATUS
   // =====================================================
-  async updateOrderStatus(id: number, status: order_status): Promise<IOrder> {
-    const exists = await prisma.orders.findUnique({
-      where: { id },
-    });
+  async updateOrderStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = Number(req.params.id);
+      const { status } = req.body as { status: order_status };
 
-    if (!exists) {
-      throw new ApiError(404, "Order not found");
+      const updated = await orderService.updateOrderStatus(id, status);
+
+      return res.status(200).json({
+        success: true,
+        message: "Order status updated successfully",
+        data: updated,
+      });
+    } catch (error) {
+      next(error);
     }
-
-    const order = await prisma.orders.update({
-      where: { id },
-      data: { status },
-    });
-
-    return mapOrder(order as OrderEntity);
   }
 
   // =====================================================
   // CANCEL ORDER
   // =====================================================
-  async cancelOrder(id: number): Promise<IOrder> {
-    const order = await prisma.orders.findUnique({
-      where: { id },
-    });
+  async cancelOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = Number(req.params.id);
 
-    if (!order) {
-      throw new ApiError(404, "Order not found");
+      const cancelled = await orderService.cancelOrder(id);
+
+      return res.status(200).json({
+        success: true,
+        message: "Order cancelled successfully",
+        data: cancelled,
+      });
+    } catch (error) {
+      next(error);
     }
-
-    if (
-      order.status === order_status.SHIPPED ||
-      order.status === order_status.DELIVERED
-    ) {
-      throw new ApiError(
-        400,
-        "Cannot cancel an order that has already been shipped or delivered"
-      );
-    }
-
-    if (order.status === order_status.CANCELLED) {
-      throw new ApiError(400, "Order is already cancelled");
-    }
-
-    const updatedOrder = await prisma.orders.update({
-      where: { id },
-      data: {
-        status: order_status.CANCELLED,
-      },
-    });
-
-    return mapOrder(updatedOrder as OrderEntity);
   }
 
   // =====================================================
   // DELETE ORDER
   // =====================================================
-  async deleteOrder(id: number): Promise<void> {
-    const exists = await prisma.orders.findUnique({
-      where: { id },
-    });
+  async deleteOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = Number(req.params.id);
 
-    if (!exists) {
-      throw new ApiError(404, "Order not found");
+      await orderService.deleteOrder(id);
+
+      return res.status(200).json({
+        success: true,
+        message: "Order deleted successfully",
+      });
+    } catch (error) {
+      next(error);
     }
-
-    await prisma.orders.delete({
-      where: { id },
-    });
   }
 
   // =====================================================
   // PLACE ORDER (CHECKOUT)
   // =====================================================
-  async placeOrder(data: {
-    user_id: number;
-    shipping_address?: string;
-    phone?: string;
-    customer_name?: string;
-    customer_email?: string;
-  }): Promise<IOrder> {
-    return await prisma.$transaction(async (tx) => {
-      const cart = await tx.carts.findFirst({
-        where: { user_id: data.user_id },
-        include: { cart_items: true },
+  async placeOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const order = await orderService.placeOrder(req.body);
+
+      return res.status(201).json({
+        success: true,
+        message: "Order placed successfully",
+        data: order,
       });
-
-      if (!cart || cart.cart_items.length === 0) {
-        throw new ApiError(400, "Cart is empty");
-      }
-
-      const productIds = cart.cart_items.map((item) => item.product_id);
-
-      const products = await tx.products.findMany({
-        where: { id: { in: productIds } },
-      });
-
-      const productMap = new Map(products.map((p) => [p.id, p]));
-
-      let total = new Decimal(0);
-      const orderItemsData = [];
-
-      for (const item of cart.cart_items) {
-        const product = productMap.get(item.product_id);
-
-        if (!product) {
-          throw new ApiError(404, "Product not found");
-        }
-
-        if (product.stock < item.quantity) {
-          throw new ApiError(
-            400,
-            `Insufficient stock for product ${product.id}`
-          );
-        }
-
-        const price = new Decimal(product.price);
-        const subtotal = price.mul(item.quantity);
-
-        total = total.add(subtotal);
-
-        await tx.products.update({
-          where: { id: product.id },
-          data: {
-            stock: { decrement: item.quantity },
-          },
-        });
-
-        orderItemsData.push({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: product.price,
-        });
-      }
-
-      // CREATE ORDER WITH IDS
-      const order = await tx.orders.create({
-        data: {
-          user_id: data.user_id,
-          total,
-          status: order_status.PENDING,
-          shipping_address: data.shipping_address ?? null,
-          phone: data.phone ?? null,
-          customer_name: data.customer_name ?? null,
-          customer_email: data.customer_email ?? null,
-
-          uuid: generateUUID(),
-          order_ref: generateShortId(10),
-        },
-      });
-
-      await tx.order_items.createMany({
-        data: orderItemsData.map((item) => ({
-          ...item,
-          order_id: order.id,
-        })),
-      });
-
-      await tx.cart_items.deleteMany({
-        where: { cart_id: cart.id },
-      });
-
-      return mapOrder(order as OrderEntity);
-    });
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
-export const orderService = new OrderService();
+export const orderController = new OrderController();
