@@ -1,3 +1,5 @@
+import Decimal from "decimal.js";
+
 /**
  * =========================
  * ROLES
@@ -22,7 +24,7 @@ export type Permission = (typeof PERMISSIONS)[number];
 /**
  * DISCOUNT TYPES
  */
-export const DISCOUNT_TYPES = ["PERCENTAGE", "FIXED_AMOUNT"] as const;
+export const DISCOUNT_TYPES = ["PERCENTAGE", "FIXED"] as const;
 
 export type discount_type = (typeof DISCOUNT_TYPES)[number];
  
@@ -49,9 +51,11 @@ export type OrderStatus = (typeof ORDER_STATUS)[number];
  */
 export const PAYMENT_STATUS = [
   "PENDING",
+  "PROCESSING",
   "COMPLETED",
   "FAILED",
   "REFUNDED",
+  "CANCELLED",
 ] as const;
 
 export type PaymentStatus = (typeof PAYMENT_STATUS)[number];
