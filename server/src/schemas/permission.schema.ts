@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PERMISSIONS } from "../utils";
+import e from "express";
 
 /**
  * =========================
@@ -61,46 +62,8 @@ export const PermissionResponseSchema = z.object({
 });
 
 
-/**
- * =========================
- * Role Permission Schema
- * =========================
- */
-
-// DB Role Permission Schema (internal)
-export const RolePermissionSchema = z.object({
-  role_id: z.number(),
-
-  permission_id: z.number(),
-
-  permissions: z.any().optional(),
-
-  roles: z.any().optional(),
-});
-
-/**
- * Assign Permission to Role Schema
- */
-export const AssignRolePermissionSchema = z.object({
-  role_id: z.number(),
-
-  permission_id: z.number(),
-});
-
-/**
- * Remove Permission from Role Schema
- */
-export const RemoveRolePermissionSchema = z.object({
-  role_id: z.number(),
-
-  permission_id: z.number(),
-});
-
-/**
- * Role Permission Response Schema
- */
-export const RolePermissionResponseSchema = z.object({
-  role_id: z.number(),
-
-  permission_id: z.number(),
-});
+export type Permission = z.infer<typeof PermissionSchema>;
+export type CreatePermissionInput = z.infer<typeof CreatePermissionSchema>;
+export type UpdatePermissionInput = z.infer<typeof UpdatePermissionSchema>;
+export type DeletePermissionInput = z.infer<typeof DeletePermissionSchema>;
+export type PermissionResponse = z.infer<typeof PermissionResponseSchema>;
