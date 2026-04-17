@@ -1,129 +1,103 @@
 import { Request, Response, NextFunction } from "express";
-import { cartItemService } from "../services";
-import { ApiError } from "../utils";
+import { categoryService } from "../services";
+import {
+  CreateCategoryInput,
+  UpdateCategoryInput,
+} from "../schemas";
 
-class CartItemController {
+class CategoryController {
   // =====================================================
-  // ADD ITEM TO CART
+  // CREATE CATEGORY
   // =====================================================
-  async addItem(req: Request, res: Response, next: NextFunction) {
+  async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const { cart_id, product_id, quantity } = req.body;
+      const data: CreateCategoryInput = req.body;
 
-      const item = await cartItemService.addItem(
-        Number(cart_id),
-        Number(product_id),
-        Number(quantity)
-      );
+      const category = await categoryService.create(data);
 
       return res.status(201).json({
         success: true,
-        message: "Item added to cart",
-        data: item,
+        message: "Category created successfully",
+        data: category,
       });
-    } catch (error: any) {
-      return next(new ApiError(400, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 
   // =====================================================
-  // GET ALL ITEMS IN CART
+  // GET ALL CATEGORIES
   // =====================================================
-  async getCartItems(req: Request, res: Response, next: NextFunction) {
+  async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const { cart_id } = req.params;
-
-      const items = await cartItemService.getCartItems(Number(cart_id));
+      const categories = await categoryService.getAll();
 
       return res.status(200).json({
         success: true,
-        data: items,
+        message: "Categories retrieved successfully",
+        data: categories,
       });
-    } catch (error: any) {
-      return next(new ApiError(500, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 
   // =====================================================
-  // UPDATE ITEM QUANTITY
+  // GET CATEGORY BY ID
   // =====================================================
-  async updateQuantity(req: Request, res: Response, next: NextFunction) {
+  async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const { item_id } = req.params;
-      const { quantity } = req.body;
+      const id = Number(req.params.id);
 
-      const item = await cartItemService.updateQuantity(
-        Number(item_id),
-        Number(quantity)
-      );
+      const category = await categoryService.getById(id);
 
       return res.status(200).json({
         success: true,
-        message: "Quantity updated successfully",
-        data: item,
+        message: "Category retrieved successfully",
+        data: category,
       });
-    } catch (error: any) {
-      return next(new ApiError(400, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 
   // =====================================================
-  // REMOVE ITEM FROM CART
+  // UPDATE CATEGORY
   // =====================================================
-  async removeItem(req: Request, res: Response, next: NextFunction) {
+  async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const { item_id } = req.params;
+      const id = Number(req.params.id);
+      const data: UpdateCategoryInput = req.body;
 
-      await cartItemService.removeItem(Number(item_id));
+      const category = await categoryService.update(id, data);
 
       return res.status(200).json({
         success: true,
-        message: "Item removed from cart",
+        message: "Category updated successfully",
+        data: category,
       });
-    } catch (error: any) {
-      return next(new ApiError(404, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 
   // =====================================================
-  // CLEAR CART
+  // DELETE CATEGORY (SOFT DELETE)
   // =====================================================
-  async clearCart(req: Request, res: Response, next: NextFunction) {
+  async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      const { cart_id } = req.params;
+      const id = Number(req.params.id);
 
-      await cartItemService.clearCart(Number(cart_id));
+      await categoryService.delete(id);
 
       return res.status(200).json({
         success: true,
-        message: "Cart cleared successfully",
+        message: "Category deleted successfully",
       });
-    } catch (error: any) {
-      return next(new ApiError(500, error.message));
-    }
-  }
-
-  // =====================================================
-  // GET SINGLE CART ITEM
-  // =====================================================
-  async getCartItemById(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { item_id } = req.params;
-
-      const item = await cartItemService.getCartItemById(Number(item_id));
-
-      if (!item) {
-        return next(new ApiError(404, "Cart item not found"));
-      }
-
-      return res.status(200).json({
-        success: true,
-        data: item,
-      });
-    } catch (error: any) {
-      return next(new ApiError(500, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 }
 
-export const cartItemController = new CartItemController();
+export const categoryController = new CategoryController();
