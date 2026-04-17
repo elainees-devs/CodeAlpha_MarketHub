@@ -1,6 +1,11 @@
 import { prisma, ApiError } from "../utils";
 import { ICart } from "../types/interfaces.types";
-import { mapCart, CartEntity } from "../mappers/cart.mapper";
+import { mapCart, CartEntity } from "../mappers";
+
+import {
+  CreateCartInput,
+  UpdateCartInput,
+} from "../schemas/cart.schema";
 
 class CartService {
   // =====================================================
@@ -19,11 +24,34 @@ class CartService {
   // =====================================================
   // CREATE CART
   // =====================================================
-  async createCart(user_id?: number, session_id?: string): Promise<ICart> {
+  async createCart(data: CreateCartInput): Promise<ICart> {
     const cart = await prisma.carts.create({
       data: {
-        user_id: user_id ?? null,
-        session_id: session_id ?? null,
+        user_id: data.user_id ?? null,
+        session_id: data.session_id ?? null,
+      },
+    });
+
+    return mapCart(cart as CartEntity);
+  }
+
+  // =====================================================
+  // UPDATE CART
+  // =====================================================
+  async updateCart(id: number, data: UpdateCartInput): Promise<ICart> {
+    const exists = await prisma.carts.findUnique({
+      where: { id },
+    });
+
+    if (!exists) {
+      throw new ApiError(404, "Cart not found");
+    }
+
+    const cart = await prisma.carts.update({
+      where: { id },
+      data: {
+        user_id: data.user_id,
+        session_id: data.session_id,
       },
     });
 
@@ -33,81 +61,81 @@ class CartService {
   // =====================================================
   // CALCULATE CART TOTALS
   // =====================================================
+  async calculateCartTotals(user_id: number) {
+    const now = new Date();
 
-async calculateCartTotals(user_id: number) {
-  const now = new Date();
-
-  const cart = await prisma.carts.findFirst({
-    where: { user_id },
-    include: {
-      cart_items: {
-        include: {
-          products: {
-            include: {
-              discounts: true,
-              subcategories: true,
+    const cart = await prisma.carts.findFirst({
+      where: { user_id },
+      include: {
+        cart_items: {
+          include: {
+            products: {
+              include: {
+                discounts: true,
+                subcategories: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    });
 
-  if (!cart) {
-    throw new ApiError(404, "Cart not found");
-  }
+    if (!cart) {
+      throw new ApiError(404, "Cart not found");
+    }
 
-  const discounts = await prisma.discounts.findMany({
-    where: {
-      is_active: true,
-      start_date: { lte: now },
-      end_date: { gte: now },
-    },
-  });
+    const discounts = await prisma.discounts.findMany({
+      where: {
+        is_active: true,
+        start_date: { lte: now },
+        end_date: { gte: now },
+      },
+    });
 
-  let subtotal = 0;
-  let totalDiscount = 0;
-  const enrichedItems = cart.cart_items.map((item) => {
-    const itemSubtotal =
-  Number(item.products.price) * item.quantity;
+    let subtotal = 0;
+    let totalDiscount = 0;
 
-    subtotal += itemSubtotal; // Accumulate subtotal
-    let itemDiscount = 0;
+    const enrichedItems = cart.cart_items.map((item) => {
+      const itemSubtotal = Number(item.products.price) * item.quantity;
 
-const applicableDiscount = item.products.discounts.find(
-  (d) => discounts.some((ad) => ad.id === d.id)
-);
+      subtotal += itemSubtotal;
 
-if (applicableDiscount) {
-  if (applicableDiscount.type === "PERCENTAGE") {
-    itemDiscount =
-      (itemSubtotal * Number(applicableDiscount.value)) / 100;
-  }
+      let itemDiscount = 0;
 
-  if (applicableDiscount.type === "FIXED") {
-    itemDiscount = Number(applicableDiscount.value);
-  }
+      const applicableDiscount = item.products.discounts.find((d) =>
+        discounts.some((ad) => ad.id === d.id)
+      );
 
-  totalDiscount += itemDiscount;
-}
+      if (applicableDiscount) {
+        if (applicableDiscount.discount_type === "PERCENTAGE") {
+          itemDiscount =
+            (itemSubtotal * Number(applicableDiscount.value)) / 100;
+        }
+
+        if (applicableDiscount.discount_type === "FIXED") {
+          itemDiscount = Number(applicableDiscount.value);
+        }
+
+        totalDiscount += itemDiscount;
+      }
+
+      return {
+        ...item,
+        discount: itemDiscount,
+        itemSubtotal,
+      };
+    });
+
+    const total = subtotal - totalDiscount;
 
     return {
-      ...item,
-      discount: itemDiscount,
-      itemSubtotal, // Add item subtotal for frontend display
+      cart_id: cart.id,
+      items: enrichedItems,
+      subtotal,
+      discount: totalDiscount,
+      total,
     };
-  });
-
-  const total = subtotal - totalDiscount;
-
-  return {
-    cart_id: cart.id,
-    items: enrichedItems,
-    subtotal,
-    discount: totalDiscount,
-    total,
-  };
-}
+  }
 
   // =====================================================
   // DELETE CART
@@ -137,7 +165,7 @@ if (applicableDiscount) {
     });
   }
 
-   // =====================================================
+  // =====================================================
   // MERGE GUEST CART INTO USER CART
   // =====================================================
   async mergeGuestCart(session_id: string, user_id: number): Promise<void> {
@@ -150,7 +178,6 @@ if (applicableDiscount) {
       return;
     }
 
-    // Find or create user cart
     let userCart = await prisma.carts.findFirst({
       where: { user_id },
       include: { cart_items: true },
@@ -166,14 +193,12 @@ if (applicableDiscount) {
       });
     }
 
-    // Merge items
     for (const guestItem of guestCart.cart_items) {
       const existingItem = userCart.cart_items.find(
         (i) => i.product_id === guestItem.product_id
       );
 
       if (existingItem) {
-        // Increase quantity if product already exists
         await prisma.cart_items.update({
           where: { id: existingItem.id },
           data: {
@@ -181,7 +206,6 @@ if (applicableDiscount) {
           },
         });
       } else {
-        // Move item to user cart
         await prisma.cart_items.create({
           data: {
             cart_id: userCart.id,
@@ -192,7 +216,6 @@ if (applicableDiscount) {
       }
     }
 
-    // Delete guest cart after merge
     await prisma.cart_items.deleteMany({
       where: { cart_id: guestCart.id },
     });
