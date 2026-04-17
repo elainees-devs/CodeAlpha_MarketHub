@@ -1,5 +1,5 @@
 import { prisma } from "../utils";
-import { UserResponse, IUser } from "../types/interfaces.types";
+import { UserResponse, UpdateUserInput } from "../schemas/user.schema";
 import { mapUserResponse, UserEntity } from "../mappers/user.mapper";
 import bcrypt from "bcryptjs";
 
@@ -12,9 +12,7 @@ class UserService {
       orderBy: { created_at: "desc" },
     });
 
-    return users.map((user) =>
-      mapUserResponse(user as UserEntity),
-    );
+    return users.map((user) => mapUserResponse(user as UserEntity));
   }
 
   // =====================================================
@@ -42,53 +40,25 @@ class UserService {
   // =====================================================
   // UPDATE USER (PROFILE ONLY)
   // =====================================================
-  async updateUser(
-    id: number,
-    data: Partial<Pick<IUser, "name" | "email">>,
-  ): Promise<UserResponse> {
+  async updateUser(id: number, data: UpdateUserInput): Promise<UserResponse> {
+    const { name, email, password } = data;
+
+    const updateData: any = {};
+
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+
+    // If password is provided, hash it before saving
+    if (password) {
+      updateData.password_hash = await bcrypt.hash(password, 10);
+    }
+
     const user = await prisma.users.update({
       where: { id },
-      data,
+      data: updateData,
     });
 
     return mapUserResponse(user as UserEntity);
-  }
-
-  // =====================================================
-  // CHANGE PASSWORD (SECURE OPERATION)
-  // =====================================================
-  async changePassword(
-    user_id: number,
-    data: { oldPassword: string; newPassword: string },
-  ): Promise<void> {
-    const user = await prisma.users.findUnique({
-      where: { id: user_id },
-    });
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    const isMatch = await bcrypt.compare(
-      data.oldPassword,
-      user.password_hash,
-    );
-
-    if (!isMatch) {
-      throw new Error("Old password is incorrect");
-    }
-
-    const hashedPassword = await bcrypt.hash(
-      data.newPassword,
-      10,
-    );
-
-    await prisma.users.update({
-      where: { id: user_id },
-      data: {
-        password_hash: hashedPassword,
-      },
-    });
   }
 
   // =====================================================
