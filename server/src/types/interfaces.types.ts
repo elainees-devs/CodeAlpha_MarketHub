@@ -75,13 +75,6 @@ export interface IProductImage extends IBase {
   position: number;
 }
 
-/**
- * Product Response (with images)
- */
-export interface IProductResponse extends IProduct {
-  images: IProductImage[];
-}
-
 // CART
 export interface ICart extends IBase {
   user_id?: number | null;
