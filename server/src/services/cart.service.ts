@@ -30,6 +30,10 @@ class CartService {
     return mapCart(cart as CartEntity);
   }
 
+  // =====================================================
+  // CALCULATE CART TOTALS
+  // =====================================================
+
 async calculateCartTotals(user_id: number) {
   const now = new Date();
 
