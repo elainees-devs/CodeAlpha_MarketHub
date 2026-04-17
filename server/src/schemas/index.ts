@@ -54,6 +54,14 @@ export {
   ProductImageResponseSchema,
 } from "./product.schema";
 
+// Discount Schemas
+export {
+  CreateDiscountInput,
+  UpdateDiscountInput,
+  ValidateDiscountCodeInput,
+  DiscountIdParam,
+} from "./discount.schema";
+
 // Order Schemas
 export {
   OrderSchema,
