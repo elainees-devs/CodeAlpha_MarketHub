@@ -30,6 +30,79 @@ class CartService {
     return mapCart(cart as CartEntity);
   }
 
+async calculateCartTotals(user_id: number) {
+  const now = new Date();
+
+  const cart = await prisma.carts.findFirst({
+    where: { user_id },
+    include: {
+      cart_items: {
+        include: {
+          products: {
+            include: {
+              discounts: true,
+              subcategories: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!cart) {
+    throw new ApiError(404, "Cart not found");
+  }
+
+  const discounts = await prisma.discounts.findMany({
+    where: {
+      is_active: true,
+      start_date: { lte: now },
+      end_date: { gte: now },
+    },
+  });
+
+  let subtotal = 0;
+  let totalDiscount = 0;
+  const enrichedItems = cart.cart_items.map((item) => {
+    const itemSubtotal =
+  Number(item.products.price) * item.quantity;
+
+    let itemDiscount = 0;
+
+const applicableDiscount = item.products.discounts.find(
+  (d) => discounts.some((ad) => ad.id === d.id)
+);
+
+if (applicableDiscount) {
+  if (applicableDiscount.type === "PERCENTAGE") {
+    itemDiscount =
+      (itemSubtotal * Number(applicableDiscount.value)) / 100;
+  }
+
+  if (applicableDiscount.type === "FIXED") {
+    itemDiscount = Number(applicableDiscount.value);
+  }
+
+  totalDiscount += itemDiscount;
+}
+
+    return {
+      ...item,
+      discount: itemDiscount,
+    };
+  });
+
+  const total = subtotal - totalDiscount;
+
+  return {
+    cart_id: cart.id,
+    items: enrichedItems,
+    subtotal,
+    discount: totalDiscount,
+    total,
+  };
+}
+
   // =====================================================
   // DELETE CART
   // =====================================================
