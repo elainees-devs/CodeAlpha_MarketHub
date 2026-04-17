@@ -61,3 +61,9 @@ export const UserResponseSchema = z.object({
   email: z.string().email(),
   created_at: z.coerce.date(),
 });
+
+export type User = z.infer<typeof UserSchema>;
+export type CreateUserInput = z.infer<typeof CreateUserSchema>;
+export type UpdateUserInput = z.infer<typeof UpdateUserSchema>;
+export type DeleteUserInput = z.infer<typeof DeleteUserSchema>;
+export type UserResponse = z.infer<typeof UserResponseSchema>;  
