@@ -1,4 +1,5 @@
 import Decimal from "decimal.js";
+import { OrderStatus, PaymentProvider, PaymentStatus, ShipmentStatus, discount_type } from "../utils/constants";
 /**
  * Base Entity
  */
@@ -101,6 +102,17 @@ export interface ICartItem extends IBase {
   quantity: number;
 }
 
+export interface IDiscount extends IBase {
+  code: string;
+  product_id?: number | null;
+  vendor_id?: number | null;
+  discount_type: discount_type;
+  start_date?: string | null;
+  end_date?: string | null;
+  is_active: boolean;
+  value: Decimal;
+}
+
 /**
  * Cart Response (expanded)
  */
@@ -108,14 +120,6 @@ export interface ICartResponse extends ICart {
   items: ICartItem[];
   total_price: Decimal;
 }
-
-// ORDERS
-export type OrderStatus =
-  | "PENDING"
-  | "CONFIRMED"
-  | "SHIPPED"
-  | "DELIVERED"
-  | "CANCELLED";
 
 export interface IOrder extends IBase {
   user_id: number;
@@ -143,16 +147,6 @@ export interface IOrderResponse extends IOrder {
   items: IOrderItem[];
 }
 
-// PAYMENTS
-export type PaymentStatus =
-  | "PENDING"
-  | "PROCESSING"
-  | "COMPLETED"
-  | "FAILED"
-  | "REFUNDED"
-  | "CANCELLED";
-
-export type PaymentProvider = "STRIPE" | "MPESA" | "PAYPAL";
 
 export interface IPayment extends IBase {
   order_id: number | null;
@@ -163,14 +157,6 @@ export interface IPayment extends IBase {
   attempt_count: number;
 }
 
-export type ShipmentStatus =
-  | "PENDING"
-  | "SHIPPED"
-  | "DELIVERED"
-  | "RETURNED"
-  | "CANCELLED";
-
-// SHIPPING
 export interface IShipment extends IBase {
   order_id: number | null;
   address: string;
@@ -202,6 +188,18 @@ export interface CreateOrderInput {
   phone: string;
   customer_name: string;
   customer_email: string;
+}
+
+// discount input
+export interface CreateDiscountInput {
+  code: string;
+  product_id?: number | null;
+  vendor_id?: number | null;
+  discount_type: discount_type;
+  start_date?: Date | null;
+  end_date?: Date | null;
+  value: Decimal;
+  expires_at?: Date | null;
 }
 
 // payment input
