@@ -71,3 +71,9 @@ export const ShipmentResponseSchema = z.object({
   tracking_number: z.string().nullable().optional(),
   created_at: z.coerce.date(),
 });
+
+export type Shipment = z.infer<typeof ShipmentSchema>;
+export type CreateShipmentInput = z.infer<typeof CreateShipmentSchema>;
+export type UpdateShipmentInput = z.infer<typeof UpdateShipmentSchema>;
+export type DeleteShipmentInput = z.infer<typeof DeleteShipmentSchema>;
+export type ShipmentResponse = z.infer<typeof ShipmentResponseSchema>;
