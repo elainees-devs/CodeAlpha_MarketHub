@@ -1,12 +1,18 @@
 import Decimal from "decimal.js";
-import { OrderStatus, PaymentProvider, PaymentStatus, ShipmentStatus, discount_type } from "../utils/constants";
+import {
+  OrderStatus,
+  PaymentProvider,
+  PaymentStatus,
+  ShipmentStatus,
+  discount_type,
+} from "../utils/constants";
 /**
  * Base Entity
  */
 export interface IBase {
   id: number;
-  created_at: string;
-  deleted_at?: string | null;
+  created_at: Date;
+  deleted_at?: Date | null;
 }
 
 /**
@@ -16,20 +22,6 @@ export interface IUser extends IBase {
   name: string;
   email: string;
   password_hash: string;
-}
-
-/**
- * Public User Response
- */
-export type UserResponse = Omit<IUser, "password_hash">;
-
-/**
- * Register Input
- */
-export interface RegisterUserInput {
-  name: string;
-  email: string;
-  password: string; // plain password (backend hashes it)
 }
 
 export interface IRole extends IBase {
@@ -113,14 +105,6 @@ export interface IDiscount extends IBase {
   value: Decimal;
 }
 
-/**
- * Cart Response (expanded)
- */
-export interface ICartResponse extends ICart {
-  items: ICartItem[];
-  total_price: Decimal;
-}
-
 export interface IOrder extends IBase {
   user_id: number;
   total: Decimal;
@@ -129,7 +113,6 @@ export interface IOrder extends IBase {
   phone?: string | null;
   customer_name?: string | null;
   customer_email?: string | null;
-  deleted_at?: string | null;
 }
 
 export interface IOrderItem extends IBase {
@@ -137,16 +120,7 @@ export interface IOrderItem extends IBase {
   product_id: number;
   quantity: number;
   price: Decimal;
-  deleted_at?: string | null;
 }
-
-/**
- * Order Response
- */
-export interface IOrderResponse extends IOrder {
-  items: IOrderItem[];
-}
-
 
 export interface IPayment extends IBase {
   order_id: number | null;
@@ -166,48 +140,6 @@ export interface IShipment extends IBase {
   tracking_number?: string | null;
 }
 
-// INPUT TYPES
-
-export type CreateUserInput = RegisterUserInput; // user input
-
-//product input
-export type CreateProductInput = Omit<
-  IProduct,
-  "id" | "created_at" | "deleted_at"
->;
-
-//category input
-export interface AddToCartInput {
-  product_id: number;
-  quantity: number;
-}
-
-// order input
-export interface CreateOrderInput {
-  shipping_address: string;
-  phone: string;
-  customer_name: string;
-  customer_email: string;
-}
-
-// discount input
-export interface CreateDiscountInput {
-  code: string;
-  product_id?: number | null;
-  vendor_id?: number | null;
-  discount_type: discount_type;
-  start_date?: Date | null;
-  end_date?: Date | null;
-  value: Decimal;
-  expires_at?: Date | null;
-}
-
-// payment input
-export interface CreatePaymentInput {
-  order_id: number;
-  provider: PaymentProvider;
-}
-
 // Audit Log
 export interface IAuditLog {
   id: number;
@@ -223,6 +155,7 @@ export interface IAuditLog {
 // Authenticated user info (from JWT)
 export interface IAuthUser {
   // runtime representation of authenticated user
+  id: number;
   user_id: number;
   roles: string[]; // e.g. ["admin", "customer"]
 }
