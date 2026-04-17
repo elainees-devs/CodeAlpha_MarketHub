@@ -1,51 +1,57 @@
 import { Router } from "express";
 import { categoryController } from "../controllers";
-import { validate } from "../middlewares";
+import { validate, authenticateMiddleware, requireRole } from "../middlewares";
 import {
   CreateCategorySchema,
   UpdateCategorySchema,
-  DeleteCategorySchema,
 } from "../schemas/category.schema";
 
 const router = Router();
 
 // =====================================================
-// CREATE CATEGORY
+// CREATE CATEGORY (ADMIN ONLY)
 // =====================================================
 router.post(
   "/",
+  authenticateMiddleware,
+  requireRole(["admin"]),
   validate(CreateCategorySchema),
   (req, res, next) => categoryController.create(req, res, next)
 );
 
 // =====================================================
-// GET ALL CATEGORIES
+// GET ALL CATEGORIES (PUBLIC or AUTHENTICATED)
 // =====================================================
 router.get("/", (req, res, next) =>
   categoryController.getAll(req, res, next)
 );
 
 // =====================================================
-// GET CATEGORY BY ID
+// GET CATEGORY BY ID (PUBLIC or AUTHENTICATED)
 // =====================================================
 router.get("/:id", (req, res, next) =>
   categoryController.getById(req, res, next)
 );
 
 // =====================================================
-// UPDATE CATEGORY
+// UPDATE CATEGORY (ADMIN ONLY)
 // =====================================================
 router.put(
   "/:id",
+  authenticateMiddleware,
+  requireRole(["admin"]),
   validate(UpdateCategorySchema),
   (req, res, next) => categoryController.update(req, res, next)
 );
 
 // =====================================================
-// DELETE CATEGORY (SOFT DELETE)
+// DELETE CATEGORY (ADMIN ONLY)
 // =====================================================
-router.delete("/:id", (req, res, next) =>
-  categoryController.delete(req, res, next)
+router.delete(
+  "/:id",
+  authenticateMiddleware,
+  requireRole(["admin"]),
+  (req, res, next) => categoryController.delete(req, res, next)
 );
 
 export default router;
