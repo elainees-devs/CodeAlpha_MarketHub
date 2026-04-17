@@ -23,4 +23,16 @@ export const verifyToken = (token: string): any => {
   } catch {
     return null;
   }
-};
+}
+
+  /**
+   * Refresh token
+   */
+  export const refreshToken = (token: string): string | null => {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true });
+      return generateToken({ id: (decoded as any).id });
+    } catch {
+      return null;
+    }
+  }
