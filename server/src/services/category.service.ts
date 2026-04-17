@@ -1,13 +1,19 @@
-import { prisma } from "../utils";
-import { ICategory } from "../types/interfaces.types";
+import { prisma, ApiError } from "../utils";
+import {
+  CategoryResponse,
+  CreateCategoryInput,
+  UpdateCategoryInput,
+} from "../schemas/category.schema";
+
 import { mapCategory, CategoryEntity } from "../mappers";
-import { ApiError } from "../utils";
 
 class CategoryService {
   // =====================================================
   // CREATE CATEGORY
   // =====================================================
-  async create(name: string): Promise<ICategory> {
+  async create(data: CreateCategoryInput): Promise<CategoryResponse> {
+    const { name } = data;
+
     const existing = await prisma.categories.findFirst({
       where: {
         name,
@@ -29,19 +35,21 @@ class CategoryService {
   // =====================================================
   // GET ALL CATEGORIES
   // =====================================================
-  async getAll(): Promise<ICategory[]> {
+  async getAll(): Promise<CategoryResponse[]> {
     const categories = await prisma.categories.findMany({
       where: { deleted_at: null },
       orderBy: { created_at: "desc" },
     });
 
-    return categories.map((cat) => mapCategory(cat as CategoryEntity));
+    return categories.map((cat) =>
+      mapCategory(cat as CategoryEntity)
+    );
   }
 
   // =====================================================
   // GET CATEGORY BY ID
   // =====================================================
-  async getById(id: number): Promise<ICategory> {
+  async getById(id: number): Promise<CategoryResponse> {
     const category = await prisma.categories.findUnique({
       where: { id },
     });
@@ -56,7 +64,10 @@ class CategoryService {
   // =====================================================
   // UPDATE CATEGORY
   // =====================================================
-  async update(id: number, name: string): Promise<ICategory> {
+  async update(
+    id: number,
+    data: UpdateCategoryInput
+  ): Promise<CategoryResponse> {
     const category = await prisma.categories.findUnique({
       where: { id },
     });
@@ -67,7 +78,9 @@ class CategoryService {
 
     const updated = await prisma.categories.update({
       where: { id },
-      data: { name },
+      data: {
+        ...(data.name && { name: data.name }),
+      },
     });
 
     return mapCategory(updated as CategoryEntity);
