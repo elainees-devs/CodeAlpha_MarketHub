@@ -6,23 +6,26 @@ import {
 } from "../schemas";
 
 class DiscountController {
-  // =====================================================
-  // GET ALL DISCOUNTS
-  // =====================================================
-  async getAllDiscounts(req: Request, res: Response, next: NextFunction) {
-    try {
-      const discounts = await discountService.getAllDiscounts();
+ // =====================================================
+// GET ALL DISCOUNTS
+// =====================================================
+async getAllDiscounts(req: Request, res: Response, next: NextFunction) {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
 
-      return res.status(200).json({
-        success: true,
-        message: "Discounts retrieved successfully",
-        data: discounts,
-      });
-    } catch (error) {
-      next(error);
-    }
+    const result = await discountService.getAllDiscounts(page, limit);
+
+    return res.status(200).json({
+      success: true,
+      message: "Discounts retrieved successfully",
+      data: result.data,
+      meta: result.meta,
+    });
+  } catch (error) {
+    next(error);
   }
-
+}
   // =====================================================
   // GET DISCOUNT BY ID
   // =====================================================
