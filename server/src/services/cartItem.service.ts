@@ -1,31 +1,30 @@
 import { prisma, ApiError } from "../utils";
 import { ICartItem } from "../types/interfaces.types";
 import { mapCartItem, CartItemEntity } from "../mappers";
+import {
+  CreateCartItemInput,
+  UpdateCartItemInput,
+} from "../schemas";
 
 class CartItemService {
   // =====================================================
   // ADD ITEM TO CART
   // =====================================================
-  async addItem(
-    cart_id: number,
-    product_id: number,
-    quantity: number
-  ): Promise<ICartItem> {
-    const qty = Number(quantity);
-
-    if (isNaN(qty) || qty <= 0) {
-      throw new ApiError(400, "Quantity must be greater than 0");
-    }
+  async addItem(data: CreateCartItemInput): Promise<ICartItem> {
+    const { cart_id, product_id, quantity } = data;
 
     const existingItem = await prisma.cart_items.findFirst({
-      where: { cart_id, product_id },
+      where: {
+        cart_id: cart_id ?? undefined,
+        product_id,
+      },
     });
 
     if (existingItem) {
       const updated = await prisma.cart_items.update({
         where: { id: existingItem.id },
         data: {
-          quantity: existingItem.quantity + qty,
+          quantity: existingItem.quantity + quantity,
         },
       });
 
@@ -34,9 +33,9 @@ class CartItemService {
 
     const cartItem = await prisma.cart_items.create({
       data: {
-        cart_id,
+        cart_id: cart_id ?? null,
         product_id,
-        quantity: qty,
+        quantity,
       },
     });
 
@@ -58,12 +57,11 @@ class CartItemService {
   // =====================================================
   // UPDATE ITEM QUANTITY
   // =====================================================
-  async updateQuantity(item_id: number, quantity: number): Promise<ICartItem> {
-    const qty = Number(quantity);
-
-    if (isNaN(qty) || qty <= 0) {
-      throw new ApiError(400, "Quantity must be greater than 0");
-    }
+  async updateQuantity(
+    item_id: number,
+    data: UpdateCartItemInput
+  ): Promise<ICartItem> {
+    const { quantity } = data;
 
     const existing = await prisma.cart_items.findUnique({
       where: { id: item_id },
@@ -75,7 +73,7 @@ class CartItemService {
 
     const updated = await prisma.cart_items.update({
       where: { id: item_id },
-      data: { quantity: qty },
+      data: { quantity },
     });
 
     return mapCartItem(updated as CartItemEntity);
