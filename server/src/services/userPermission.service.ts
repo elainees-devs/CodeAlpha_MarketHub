@@ -1,64 +1,89 @@
-import { prisma } from "../utils";
+import { prisma, ApiError } from "../utils";
 import { IUserPermission } from "../types/interfaces.types";
 import {
-  UserPermissionEntity,
   mapUserPermission,
+  UserPermissionEntity,
 } from "../mappers";
-import { ApiError } from "../utils";
+import {
+  AssignUserPermissionInput,
+  RemoveUserPermissionInput,
+} from "../schemas";
 
 class UserPermissionService {
   // =====================================================
   // ASSIGN PERMISSION TO USER
   // =====================================================
   async assignPermissionToUser(
-    user_id: number,
-    permission_id: number
+    data: AssignUserPermissionInput
   ): Promise<IUserPermission> {
-    const exists = await prisma.user_permissions.findFirst({
-      where: { user_id, permission_id },
+    const { user_id, permission_id } = data;
+
+    const existing = await prisma.user_permissions.findUnique({
+      where: {
+        user_id_permission_id: {
+          user_id,
+          permission_id,
+        },
+      },
     });
 
-    if (exists) {
-      throw new ApiError(409, "Permission already assigned to user");
+    if (existing) {
+      throw new ApiError(409, "User already has this permission");
     }
 
-    const up = await prisma.user_permissions.create({
-      data: { user_id, permission_id },
+    const result = await prisma.user_permissions.create({
+      data: {
+        user_id,
+        permission_id,
+      },
     });
 
-    return mapUserPermission(up as UserPermissionEntity);
+    return mapUserPermission(result as UserPermissionEntity);
   }
 
   // =====================================================
   // REMOVE PERMISSION FROM USER
   // =====================================================
   async removePermissionFromUser(
-    user_id: number,
-    permission_id: number
+    data: RemoveUserPermissionInput
   ): Promise<void> {
-    const exists = await prisma.user_permissions.findFirst({
-      where: { user_id, permission_id },
+    const { user_id, permission_id } = data;
+
+    const existing = await prisma.user_permissions.findUnique({
+      where: {
+        user_id_permission_id: {
+          user_id,
+          permission_id,
+        },
+      },
     });
 
-    if (!exists) {
+    if (!existing) {
       throw new ApiError(404, "User permission not found");
     }
 
-    await prisma.user_permissions.deleteMany({
-      where: { user_id, permission_id },
+    await prisma.user_permissions.delete({
+      where: {
+        user_id_permission_id: {
+          user_id,
+          permission_id,
+        },
+      },
     });
   }
 
   // =====================================================
   // GET PERMISSIONS BY USER
   // =====================================================
-  async getPermissionsByUser(user_id: number): Promise<IUserPermission[]> {
-    const userPermissions = await prisma.user_permissions.findMany({
+  async getPermissionsByUser(
+    user_id: number
+  ): Promise<IUserPermission[]> {
+    const permissions = await prisma.user_permissions.findMany({
       where: { user_id },
     });
 
-    return userPermissions.map((up: UserPermissionEntity) =>
-      mapUserPermission(up)
+    return permissions.map((p: UserPermissionEntity) =>
+      mapUserPermission(p)
     );
   }
 }
