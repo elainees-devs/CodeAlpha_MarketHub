@@ -67,6 +67,7 @@ async calculateCartTotals(user_id: number) {
     const itemSubtotal =
   Number(item.products.price) * item.quantity;
 
+    subtotal += itemSubtotal; // Accumulate subtotal
     let itemDiscount = 0;
 
 const applicableDiscount = item.products.discounts.find(
@@ -89,6 +90,7 @@ if (applicableDiscount) {
     return {
       ...item,
       discount: itemDiscount,
+      itemSubtotal, // Add item subtotal for frontend display
     };
   });
 
