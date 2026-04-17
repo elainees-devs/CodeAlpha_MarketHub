@@ -1,5 +1,6 @@
 import Decimal from "decimal.js";
-import { IProduct, IProductResponse, IProductImage } from "../types/interfaces.types";
+import { IProduct, IProductImage } from "../types/interfaces.types";
+import { ProductResponse } from "../schemas";
 
 /**
  * ======================
@@ -41,8 +42,8 @@ export const mapProductImage = (img: ProductImageEntity): IProductImage => {
     image_url: img.image_url,
     is_main: img.is_main ?? false,
     position: img.position ?? 0,
-    created_at: img.created_at?.toISOString() ?? "",
-    deleted_at: img.deleted_at?.toISOString() ?? null,
+    created_at: img.created_at?.toISOString() ? new Date(img.created_at.toISOString()) : new Date(),
+    deleted_at: img.deleted_at?.toISOString() ? new Date(img.deleted_at.toISOString()) : null,
   };
 };
 
@@ -65,8 +66,8 @@ export const mapProduct = (p: ProductEntity): IProduct => {
     price: p.price,
     stock: p.stock,
     subcategory_id: p.subcategory_id,
-    created_at: p.created_at?.toISOString() ?? "",
-    deleted_at: p.deleted_at?.toISOString() ?? null,
+    created_at: p.created_at?.toISOString() ? new Date(p.created_at.toISOString()) : new Date(),
+    deleted_at: p.deleted_at?.toISOString() ? new Date(p.deleted_at.toISOString()) : null,
   };
 };
 
@@ -78,9 +79,9 @@ export const mapProduct = (p: ProductEntity): IProduct => {
 
 export const mapProductResponse = (
   p: ProductEntity & { product_images?: ProductImageEntity[] }
-): IProductResponse => {
+): ProductResponse => {
   return {
     ...mapProduct(p),
-    images: (p.product_images ?? []).map(mapProductImage),
+    product_images: p.product_images?.map(mapProductImage) ?? [],
   };
 };
