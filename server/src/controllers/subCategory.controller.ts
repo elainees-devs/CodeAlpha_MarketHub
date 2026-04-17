@@ -1,11 +1,19 @@
 import { Request, Response, NextFunction } from "express";
 import { subcategoryService } from "../services";
+import {
+  CreateSubcategoryInput,
+  UpdateSubcategoryInput,
+} from "../schemas";
 
 class SubcategoryController {
   // =====================================================
   // GET ALL SUBCATEGORIES
   // =====================================================
-  async getAllSubcategories(req: Request, res: Response, next: NextFunction) {
+  async getAllSubcategories(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const subcategories =
         await subcategoryService.getAllSubcategories();
@@ -23,7 +31,11 @@ class SubcategoryController {
   // =====================================================
   // GET SUBCATEGORY BY ID
   // =====================================================
-  async getSubcategoryById(req: Request, res: Response, next: NextFunction) {
+  async getSubcategoryById(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const id = Number(req.params.id);
 
@@ -43,15 +55,16 @@ class SubcategoryController {
   // =====================================================
   // CREATE SUBCATEGORY
   // =====================================================
-  async createSubcategory(req: Request, res: Response, next: NextFunction) {
+  async createSubcategory(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
-      const { name, category_id } = req.body;
+      const data: CreateSubcategoryInput = req.body;
 
       const subcategory =
-        await subcategoryService.createSubcategory({
-          name,
-          category_id: Number(category_id),
-        });
+        await subcategoryService.createSubcategory(data);
 
       return res.status(201).json({
         success: true,
@@ -66,17 +79,22 @@ class SubcategoryController {
   // =====================================================
   // UPDATE SUBCATEGORY
   // =====================================================
-  async updateSubcategory(req: Request, res: Response, next: NextFunction) {
+  async updateSubcategory(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const id = Number(req.params.id);
+      const data: UpdateSubcategoryInput = req.body;
 
-      const updated =
-        await subcategoryService.updateSubcategory(id, req.body);
+      const subcategory =
+        await subcategoryService.updateSubcategory(id, data);
 
       return res.status(200).json({
         success: true,
         message: "Subcategory updated successfully",
-        data: updated,
+        data: subcategory,
       });
     } catch (error) {
       next(error);
@@ -84,9 +102,13 @@ class SubcategoryController {
   }
 
   // =====================================================
-  // DELETE SUBCATEGORY
+  // DELETE SUBCATEGORY (SOFT DELETE)
   // =====================================================
-  async deleteSubcategory(req: Request, res: Response, next: NextFunction) {
+  async deleteSubcategory(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const id = Number(req.params.id);
 
@@ -102,18 +124,22 @@ class SubcategoryController {
   }
 
   // =====================================================
-  // GET BY CATEGORY
+  // GET SUBCATEGORIES BY CATEGORY
   // =====================================================
-  async getByCategory(req: Request, res: Response, next: NextFunction) {
+  async getByCategory(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
-      const category_id = Number(req.params.categoryId);
+      const category_id = Number(req.params.category_id);
 
       const subcategories =
         await subcategoryService.getByCategory(category_id);
 
       return res.status(200).json({
         success: true,
-        message: "Subcategories retrieved successfully",
+        message: "Subcategories by category retrieved successfully",
         data: subcategories,
       });
     } catch (error) {
