@@ -55,6 +55,11 @@ CREATE TYPE payment_provider AS ENUM (
 'PAYPAL'
 );
 
+CREATE TYPE discount_type AS ENUM (
+'PERCENTAGE',
+'FIXED'
+);
+
 -- =========================================================
 -- USERS
 -- =========================================================
@@ -207,7 +212,7 @@ id SERIAL PRIMARY KEY,
 product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
 vendor_id INTEGER REFERENCES vendors(id) ON DELETE CASCADE,
 
-type TEXT NOT NULL CHECK (type IN ('PERCENTAGE', 'FIXED')),
+type discount_type NOT NULL,
 value DECIMAL(10,2) NOT NULL CHECK (value >= 0),
 
 start_date TIMESTAMP NOT NULL,
