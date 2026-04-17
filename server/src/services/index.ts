@@ -9,6 +9,7 @@ export {orderService} from "./order.service";
 export {orderItemService} from "./orderItem.service";
 export {cartItemService} from "./cartItem.service";
 export {cartService} from "./cart.service";
+export {discountService} from "./discount.service";
 export {paymentService} from "./payment.service";
 export {permissionService} from "./permission.service";
 export {rolePermissionService} from "./rolePermission.service";
