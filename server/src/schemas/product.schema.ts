@@ -55,3 +55,9 @@ export const ProductResponseSchema = z.object({
 
   created_at: z.coerce.date(),
 });
+
+export type Product = z.infer<typeof ProductResponseSchema>;
+export type CreateProductInput = z.infer<typeof CreateProductSchema>;
+export type UpdateProductInput = z.infer<typeof UpdateProductSchema>;
+export type DeleteProductInput = z.infer<typeof DeleteProductSchema>;
+export type ProductResponse = z.infer<typeof ProductResponseSchema>;  
