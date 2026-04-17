@@ -1,9 +1,15 @@
 import { prisma, ApiError } from "../utils";
-import { IPayment } from "../types/interfaces.types";
+import {
+  PaymentResponse,
+  CreatePaymentInput,
+  UpdatePaymentInput,
+} from "../schemas";
+
 import {
   PaymentEntity,
   mapPayment,
 } from "../mappers";
+
 import {
   payment_provider,
   payment_status,
@@ -13,7 +19,7 @@ class PaymentService {
   // =====================================================
   // GET PAYMENT BY ID
   // =====================================================
-  async getPaymentById(id: number): Promise<IPayment> {
+  async getPaymentById(id: number): Promise<PaymentResponse> {
     const payment = await prisma.payments.findUnique({
       where: { id },
     });
@@ -28,7 +34,7 @@ class PaymentService {
   // =====================================================
   // GET USER PAYMENTS
   // =====================================================
-  async getUserPayments(user_id: number): Promise<IPayment[]> {
+  async getUserPayments(user_id: number): Promise<PaymentResponse[]> {
     const payments = await prisma.payments.findMany({
       where: {
         orders: {
@@ -40,9 +46,7 @@ class PaymentService {
       },
     });
 
-    return payments.map((p: PaymentEntity) =>
-      mapPayment(p)
-    );
+    return payments.map((p: PaymentEntity) => mapPayment(p));
   }
 
   // =====================================================
@@ -50,19 +54,14 @@ class PaymentService {
   // =====================================================
   async createPayment(
     order_id: number,
-    data: {
-      user_id: number;
-      amount: number;
-      provider: payment_provider;
-      transaction_ref?: string;
-    }
-  ): Promise<IPayment> {
+    data: CreatePaymentInput & { user_id: number }
+  ): Promise<PaymentResponse> {
     const payment = await prisma.payments.create({
       data: {
         order_id,
         user_id: data.user_id,
         amount: data.amount,
-        provider: data.provider,
+        provider: data.provider as payment_provider,
         status: payment_status.PENDING,
         transaction_ref: data.transaction_ref ?? null,
         attempt_count: 1,
@@ -73,12 +72,12 @@ class PaymentService {
   }
 
   // =====================================================
-  // UPDATE PAYMENT STATUS
+  // UPDATE PAYMENT
   // =====================================================
-  async updatePaymentStatus(
+  async updatePayment(
     id: number,
-    status: payment_status
-  ): Promise<IPayment> {
+    data: UpdatePaymentInput
+  ): Promise<PaymentResponse> {
     const exists = await prisma.payments.findUnique({
       where: { id },
     });
@@ -87,35 +86,20 @@ class PaymentService {
       throw new ApiError(404, "Payment not found");
     }
 
-    const payment = await prisma.payments.update({
+    const updated = await prisma.payments.update({
       where: { id },
-      data: { status },
+      data: {
+        ...(data.status && { payment_status: data.status as payment_status }),
+        ...(data.transaction_ref !== undefined && {
+          transaction_ref: data.transaction_ref,
+        }),
+        ...(data.attempt_count && {
+          attempt_count: data.attempt_count,
+        }),
+      },
     });
 
-    return mapPayment(payment as PaymentEntity);
-  }
-
-  // =====================================================
-  // UPDATE TRANSACTION REFERENCE
-  // =====================================================
-  async updateTransactionRef(
-    id: number,
-    transaction_ref: string
-  ): Promise<IPayment> {
-    const exists = await prisma.payments.findUnique({
-      where: { id },
-    });
-
-    if (!exists) {
-      throw new ApiError(404, "Payment not found");
-    }
-
-    const payment = await prisma.payments.update({
-      where: { id },
-      data: { transaction_ref },
-    });
-
-    return mapPayment(payment as PaymentEntity);
+    return mapPayment(updated as PaymentEntity);
   }
 
   // =====================================================
@@ -136,9 +120,9 @@ class PaymentService {
   }
 
   // =====================================================
-  // MARK PAYMENT AS FAILED
+  // FAIL PAYMENT
   // =====================================================
-  async failPayment(id: number): Promise<IPayment> {
+  async failPayment(id: number): Promise<PaymentResponse> {
     const payment = await prisma.payments.findUnique({
       where: { id },
     });
