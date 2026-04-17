@@ -33,19 +33,48 @@ class CategoryService {
   }
 
   // =====================================================
-  // GET ALL CATEGORIES
-  // =====================================================
-  async getAll(): Promise<CategoryResponse[]> {
-    const categories = await prisma.categories.findMany({
+// GET ALL CATEGORIES (PAGINATED)
+// =====================================================
+async getAll(
+  page = 1,
+  limit = 10
+): Promise<{
+  data: CategoryResponse[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}> {
+  const skip = (page - 1) * limit;
+
+  const [categories, total] = await Promise.all([
+    prisma.categories.findMany({
       where: { deleted_at: null },
       orderBy: { created_at: "desc" },
-    });
+      skip,
+      take: limit,
+    }),
+    prisma.categories.count({
+      where: { deleted_at: null },
+    }),
+  ]);
 
-    return categories.map((cat) =>
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    data: categories.map((cat) =>
       mapCategory(cat as CategoryEntity)
-    );
-  }
-
+    ),
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages,
+    },
+  };
+}
   // =====================================================
   // GET CATEGORY BY ID
   // =====================================================
