@@ -1,4 +1,5 @@
-import { IUser, UserResponse } from "../types/interfaces.types";
+import { IUser} from "../types/interfaces.types";
+import { UserResponse } from "../schemas";
 
 /**
  * Prisma User Entity type (raw DB shape)
@@ -23,8 +24,8 @@ export const mapUser = (user: UserEntity): IUser => {
     name: user.name,
     email: user.email,
     password_hash: user.password_hash,
-    created_at: user.created_at.toISOString(),
-    deleted_at: user.deleted_at?.toISOString() ?? null,
+    created_at: user.created_at,
+    deleted_at: user.deleted_at ?? null,
   };
 };
 
@@ -36,7 +37,6 @@ export const mapUserResponse = (user: UserEntity): UserResponse => {
     id: user.id,
     name: user.name,
     email: user.email,
-    created_at: user.created_at.toISOString(),
-    deleted_at: user.deleted_at?.toISOString() ?? null,
+    created_at: user.created_at,
   };
 };
