@@ -46,14 +46,46 @@ class ProductService {
   }
 
   // =====================================================
-  // CREATE PRODUCT
+  // CREATE PRODUCT (WITH IMAGES SUPPORT)
   // =====================================================
-  async createProduct(data: CreateProductInput): Promise<IProduct> {
-    const product = await prisma.products.create({
-      data,
-    });
+  async createProductWithImages(
+    data: CreateProductInput,
+    files?: Express.Multer.File[]
+  ): Promise<IProductResponse> {
+    return await prisma.$transaction(async (tx) => {
+      // 1. Create product
+      const product = await tx.products.create({
+        data,
+      });
 
-    return mapProduct(product as ProductEntity);
+      // 2. Handle images if provided
+      if (files && files.length > 0) {
+        if (files.length > 5) {
+          throw new ApiError(400, "Maximum 5 images allowed");
+        }
+
+        const imagesData = files.map((file, index) => ({
+          product_id: product.id,
+          image_url: `uploads/${Date.now()}-${Math.random()}-${file.originalname}`,
+          is_main: index === 0,
+          position: index,
+        }));
+
+        await tx.product_images.createMany({
+          data: imagesData,
+        });
+      }
+
+      // 3. Return full product with images
+      const fullProduct = await tx.products.findUnique({
+        where: { id: product.id },
+        include: {
+          product_images: true,
+        },
+      });
+
+      return mapProductResponse(fullProduct as any);
+    });
   }
 
   // =====================================================
@@ -90,6 +122,11 @@ class ProductService {
     if (!exists) {
       throw new ApiError(404, "Product not found");
     }
+
+    // Optional cleanup (good practice)
+    await prisma.product_images.deleteMany({
+      where: { product_id: id },
+    });
 
     await prisma.products.delete({
       where: { id },
