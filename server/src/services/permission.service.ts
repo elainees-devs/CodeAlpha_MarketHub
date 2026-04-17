@@ -1,13 +1,19 @@
 import { prisma, ApiError } from "../utils";
-import { IPermission } from "../types/interfaces.types";
-import { mapPermission, mapPermissionResponse, PermissionEntity } from "../mappers";
-
+import {
+  CreatePermissionInput,
+  UpdatePermissionInput,
+} from "../schemas";
+import {
+  mapPermission,
+  mapPermissionResponse,
+  PermissionEntity,
+} from "../mappers";
 
 class PermissionService {
   // =====================================================
   // GET ALL PERMISSIONS
   // =====================================================
-  async getAllPermissions(): Promise<IPermission[]> {
+  async getAllPermissions() {
     const permissions = await prisma.permissions.findMany({
       orderBy: { created_at: "desc" },
     });
@@ -20,7 +26,7 @@ class PermissionService {
   // =====================================================
   // GET PERMISSION BY ID
   // =====================================================
-  async getPermissionById(id: number): Promise<IPermission> {
+  async getPermissionById(id: number) {
     const permission = await prisma.permissions.findUnique({
       where: { id },
     });
@@ -35,11 +41,31 @@ class PermissionService {
   // =====================================================
   // CREATE PERMISSION
   // =====================================================
-  async createPermission(data: {
-    name: string;
-    description?: string | null;
-  }): Promise<IPermission> {
+  async createPermission(data: CreatePermissionInput) {
     const permission = await prisma.permissions.create({
+      data: {
+        name: data.name,
+        description: data.description ?? null,
+      },
+    });
+
+    return mapPermission(permission as PermissionEntity);
+  }
+
+  // =====================================================
+  // UPDATE PERMISSION
+  // =====================================================
+  async updatePermission(id: number, data: UpdatePermissionInput) {
+    const exists = await prisma.permissions.findUnique({
+      where: { id },
+    });
+
+    if (!exists) {
+      throw new ApiError(404, "Permission not found");
+    }
+
+    const permission = await prisma.permissions.update({
+      where: { id },
       data,
     });
 
