@@ -20,6 +20,14 @@ export const PERMISSIONS = [
 export type Permission = (typeof PERMISSIONS)[number];
 
 /**
+ * DISCOUNT TYPES
+ */
+export const DISCOUNT_TYPES = ["PERCENTAGE", "FIXED_AMOUNT"] as const;
+
+export type discount_type = (typeof DISCOUNT_TYPES)[number];
+ 
+
+/**
  * =========================
  * ORDER STATUS
  * =========================
