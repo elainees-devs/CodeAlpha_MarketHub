@@ -11,7 +11,7 @@ export type DiscountEntity = {
   code: string | null;
   product_id: number | null;
   vendor_id: number | null;
-  type: discount_type;
+  discount_type: discount_type;
   value: any; // Prisma Decimal
   start_date: Date;
   end_date: Date;
@@ -36,7 +36,7 @@ export const mapDiscount = (discount: DiscountEntity): IDiscount => {
     product_id: discount.product_id ?? null,
     vendor_id: discount.vendor_id ?? null,
 
-    discount_type: discount.type,
+    discount_type: discount.discount_type,
     value: discount.value,
 
     start_date: discount.start_date?.toISOString() ?? "",
@@ -58,7 +58,7 @@ export const mapDiscountResponse = (discount: DiscountEntity): IDiscount => {
     product_id: discount.product_id ?? null,
     vendor_id: discount.vendor_id ?? null,
 
-    discount_type: discount.type,
+    discount_type: discount.discount_type,
     value: discount.value,
     is_active: discount.is_active,
 
