@@ -1,49 +1,4 @@
 import { z } from "zod";
-
-/**
- * =========================
- * Cart Item Schema 
- * =========================
- */
-// DB Cart Item Schema (internal)
-export const CartItemSchema = z.object({
-  id: z.number(),
-  cart_id: z.number().nullable(),
-  product_id: z.number().nullable(),
-  quantity: z.number().int().positive(),
-  created_at: z.coerce.date().optional(),
-  updated_at: z.coerce.date().optional(),
-  deleted_at: z.coerce.date().nullable().optional(),
-});
-
-export const CreateCartItemSchema = z.object({
-  cart_id: z.number().optional(),
-  product_id: z.number(),
-  quantity: z.number().int().min(1),
-});
-
-export const UpdateCartItemSchema = z.object({
-  quantity: z.number().int().min(1),
-});
-
-export const RemoveCartItemSchema = z.object({
-  cart_id: z.number(),
-  product_id: z.number(),
-});
-
-export const DeleteCartItemSchema = z.object({
-  id: z.number(),
-});
-
-export const CartItemResponseSchema = z.object({
-  id: z.number(),
-  cart_id: z.number().nullable(),
-  product_id: z.number().nullable(),
-  quantity: z.number(),
-  created_at: z.coerce.date(),
-});
-
-
 /**
  * =========================
  * Cart Schema 
@@ -87,3 +42,10 @@ export const CartResponseSchema = z.object({
   created_at: z.coerce.date(),
   updated_at: z.coerce.date().optional(),
 });
+
+
+export type Cart = z.infer<typeof CartSchema>;
+export type CreateCartInput = z.infer<typeof CreateCartSchema>;
+export type UpdateCartInput = z.infer<typeof UpdateCartSchema>;
+export type DeleteCartInput = z.infer<typeof DeleteCartSchema>;
+export type CartResponse = z.infer<typeof CartResponseSchema>;
