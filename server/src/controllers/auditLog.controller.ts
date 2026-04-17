@@ -16,23 +16,36 @@ class AuditLogController {
         data: log,
       });
     } catch (error: any) {
-      return next(new ApiError(400, error.message));
+      next(new ApiError(400, error.message));
     }
   }
 
   // =====================================================
-  // GET ALL AUDIT LOGS
+  // GET ALL AUDIT LOGS (PAGINATED)
   // =====================================================
   async getAllAuditLogs(req: Request, res: Response, next: NextFunction) {
     try {
-      const logs = await auditLogService.getAllAuditLogs();
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 20;
+
+      const result = await auditLogService.getAllAuditLogs({
+        page,
+        limit,
+      });
 
       return res.status(200).json({
         success: true,
-        data: logs,
+        message: "Audit logs retrieved successfully",
+        meta: {
+          page,
+          limit,
+          total: result.total,
+          pages: Math.ceil(result.total / limit),
+        },
+        data: result.data,
       });
     } catch (error: any) {
-      return next(new ApiError(500, error.message));
+      next(new ApiError(500, error.message));
     }
   }
 
@@ -41,55 +54,81 @@ class AuditLogController {
   // =====================================================
   async getAuditLogById(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      const id = Number(req.params.id);
 
-      const log = await auditLogService.getAuditLogById(Number(id));
+      const log = await auditLogService.getAuditLogById(id);
 
       return res.status(200).json({
         success: true,
+        message: "Audit log retrieved successfully",
         data: log,
       });
     } catch (error: any) {
-      return next(new ApiError(404, error.message));
+      next(new ApiError(404, error.message));
     }
   }
 
   // =====================================================
-  // GET LOGS BY TABLE NAME
+  // GET LOGS BY TABLE NAME (PAGINATED)
   // =====================================================
   async getLogsByTable(req: Request, res: Response, next: NextFunction) {
     try {
-     const table_name = req.params.table_name as string;
+      const table_name = req.params.table_name as string;
 
-      const logs = await auditLogService.getLogsByTable(table_name);
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 20;
+
+      const result = await auditLogService.getLogsByTable(table_name, {
+        page,
+        limit,
+      });
 
       return res.status(200).json({
         success: true,
-        data: logs,
+        message: "Table audit logs retrieved successfully",
+        meta: {
+          page,
+          limit,
+          total: result.total,
+          pages: Math.ceil(result.total / limit),
+        },
+        data: result.data,
       });
     } catch (error: any) {
-      return next(new ApiError(500, error.message));
+      next(new ApiError(500, error.message));
     }
   }
 
   // =====================================================
-  // GET LOGS BY RECORD
+  // GET LOGS BY RECORD (PAGINATED)
   // =====================================================
   async getLogsByRecord(req: Request, res: Response, next: NextFunction) {
     try {
-      const { table_name, record_id } = req.params as { table_name: string; record_id: string };
+      const table_name = req.params.table_name as string;
+      const record_id = Number(req.params.record_id);
 
-      const logs = await auditLogService.getLogsByRecord(
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 20;
+
+      const result = await auditLogService.getLogsByRecord(
         table_name,
-        Number(record_id)
+        record_id,
+        { page, limit }
       );
 
       return res.status(200).json({
         success: true,
-        data: logs,
+        message: "Record audit logs retrieved successfully",
+        meta: {
+          page,
+          limit,
+          total: result.total,
+          pages: Math.ceil(result.total / limit),
+        },
+        data: result.data,
       });
     } catch (error: any) {
-      return next(new ApiError(500, error.message));
+      next(new ApiError(500, error.message));
     }
   }
 
@@ -98,16 +137,16 @@ class AuditLogController {
   // =====================================================
   async deleteAuditLog(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      const id = Number(req.params.id);
 
-      const result = await auditLogService.deleteAuditLog(Number(id));
+      await auditLogService.deleteAuditLog(id);
 
       return res.status(200).json({
         success: true,
-        message: result.message,
+        message: "Audit log deleted successfully",
       });
     } catch (error: any) {
-      return next(new ApiError(404, error.message));
+      next(new ApiError(404, error.message));
     }
   }
 }

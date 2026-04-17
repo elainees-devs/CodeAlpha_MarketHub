@@ -1,4 +1,4 @@
-import { prisma } from "../utils";
+import { prisma, ApiError } from "../utils";
 import { IAuditLog } from "../types/interfaces.types";
 import { AuditLogEntity, mapAuditLog } from "../mappers/auditLog.mapper";
 
@@ -31,12 +31,27 @@ class AuditLogService {
   // =====================================================
   // GET ALL AUDIT LOGS
   // =====================================================
-  async getAllAuditLogs(): Promise<IAuditLog[]> {
-    const logs = await prisma.audit_logs.findMany({
-      orderBy: { changed_at: "desc" },
-    });
+  async getAllAuditLogs(options?: {
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: IAuditLog[]; total: number }> {
+    const page = options?.page ?? 1;
+    const limit = options?.limit ?? 20;
+    const skip = (page - 1) * limit;
 
-    return logs.map((log) => mapAuditLog(log as AuditLogEntity));
+    const [logs, total] = await Promise.all([
+      prisma.audit_logs.findMany({
+        orderBy: { changed_at: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.audit_logs.count(),
+    ]);
+
+    return {
+      data: logs.map((log) => mapAuditLog(log as AuditLogEntity)),
+      total,
+    };
   }
 
   // =====================================================
@@ -48,7 +63,7 @@ class AuditLogService {
     });
 
     if (!log) {
-      throw new Error("Audit log not found");
+      throw new ApiError(404, "Audit log not found");
     }
 
     return mapAuditLog(log as AuditLogEntity);
@@ -57,39 +72,80 @@ class AuditLogService {
   // =====================================================
   // GET LOGS BY TABLE NAME
   // =====================================================
-  async getLogsByTable(table_name: string): Promise<IAuditLog[]> {
-    const logs = await prisma.audit_logs.findMany({
-      where: { table_name },
-      orderBy: { changed_at: "desc" },
-    });
+  async getLogsByTable(
+    table_name: string,
+    options?: { page?: number; limit?: number }
+  ): Promise<{ data: IAuditLog[]; total: number }> {
+    const page = options?.page ?? 1;
+    const limit = options?.limit ?? 20;
+    const skip = (page - 1) * limit;
 
-    return logs.map((log) => mapAuditLog(log as AuditLogEntity));
+    const where = { table_name };
+
+    const [logs, total] = await Promise.all([
+      prisma.audit_logs.findMany({
+        where,
+        orderBy: { changed_at: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.audit_logs.count({ where }),
+    ]);
+
+    return {
+      data: logs.map((log) => mapAuditLog(log as AuditLogEntity)),
+      total,
+    };
   }
 
   // =====================================================
   // GET LOGS BY RECORD ID
   // =====================================================
-  async getLogsByRecord(table_name: string, record_id: number): Promise<IAuditLog[]> {
-    const logs = await prisma.audit_logs.findMany({
-      where: {
-        table_name,
-        record_id,
-      },
-      orderBy: { changed_at: "desc" },
-    });
+  async getLogsByRecord(
+    table_name: string,
+    record_id: number,
+    options?: { page?: number; limit?: number }
+  ): Promise<{ data: IAuditLog[]; total: number }> {
+    const page = options?.page ?? 1;
+    const limit = options?.limit ?? 20;
+    const skip = (page - 1) * limit;
 
-    return logs.map((log) => mapAuditLog(log as AuditLogEntity));
+    const where = {
+      table_name,
+      record_id,
+    };
+
+    const [logs, total] = await Promise.all([
+      prisma.audit_logs.findMany({
+        where,
+        orderBy: { changed_at: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.audit_logs.count({ where }),
+    ]);
+
+    return {
+      data: logs.map((log) => mapAuditLog(log as AuditLogEntity)),
+      total,
+    };
   }
 
   // =====================================================
-  // DELETE AUDIT LOG (optional / admin use)
+  // DELETE AUDIT LOG (ADMIN ONLY)
   // =====================================================
-  async deleteAuditLog(id: number): Promise<{ message: string }> {
-    await prisma.audit_logs.delete({
+  async deleteAuditLog(id: number): Promise<void> {
+    const exists = await prisma.audit_logs.findUnique({
       where: { id },
     });
 
-    return { message: "Audit log deleted successfully" };
+    if (!exists) {
+      throw new ApiError(404, "Audit log not found");
+    }
+
+    await prisma.audit_logs.delete({
+      where: { id },
+    });
   }
 }
 
