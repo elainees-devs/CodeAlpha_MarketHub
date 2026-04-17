@@ -4,6 +4,11 @@ import { discount_type } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { mapDiscount, DiscountEntity } from "../mappers";
 
+import {
+  CreateDiscountInput,
+  UpdateDiscountInput,
+} from "../schemas";
+
 class DiscountService {
   // =====================================================
   // GET DISCOUNT BY ID
@@ -52,22 +57,14 @@ class DiscountService {
   // =====================================================
   // CREATE DISCOUNT
   // =====================================================
-  async createDiscount(data: {
-    product_id: number;
-    vendor_id: number;
-    code?: string | null;
-    discount_type: discount_type;
-    value: Decimal;
-    start_date: Date;
-    end_date: Date;
-  }): Promise<IDiscount> {
+  async createDiscount(data: CreateDiscountInput): Promise<IDiscount> {
     const discount = await prisma.discounts.create({
       data: {
         product_id: data.product_id,
         vendor_id: data.vendor_id,
         code: data.code ?? null,
-        type: data.discount_type,
-        value: data.value,
+        discount_type: data.discount_type as discount_type,
+        value: data.value as unknown as Decimal,
         start_date: data.start_date,
         end_date: data.end_date,
         is_active: true,
@@ -82,16 +79,7 @@ class DiscountService {
   // =====================================================
   async updateDiscount(
     id: number,
-    data: {
-      code?: string | null;
-      product_id?: number;
-      vendor_id?: number;
-      discount_type?: discount_type;
-      value?: Decimal;
-      start_date?: Date;
-      end_date?: Date;
-      is_active?: boolean;
-    }
+    data: UpdateDiscountInput
   ): Promise<IDiscount> {
     const exists = await prisma.discounts.findUnique({
       where: { id },
@@ -101,14 +89,22 @@ class DiscountService {
       throw new ApiError(404, "Discount not found");
     }
 
-    // clean undefined values (Prisma-safe)
     const cleanedData = Object.fromEntries(
       Object.entries(data).filter(([_, value]) => value !== undefined)
     );
 
     const updated = await prisma.discounts.update({
       where: { id },
-      data: cleanedData,
+      data: {
+        ...cleanedData,
+        // Prisma field mapping fix (if needed)
+        ...(cleanedData.discount_type && {
+          type: cleanedData.discount_type as discount_type,
+        }),
+        ...(cleanedData.value && {
+          value: cleanedData.value as unknown as Decimal,
+        }),
+      },
     });
 
     return mapDiscount(updated as DiscountEntity);
