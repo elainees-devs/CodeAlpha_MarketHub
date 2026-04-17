@@ -43,7 +43,7 @@ export const mapDiscount = (discount: DiscountEntity): IDiscount => {
     end_date: discount.end_date?.toISOString() ?? null,
     is_active: discount.is_active,
 
-    created_at: discount.created_at?.toISOString() ?? "",
+    created_at: discount.created_at?.toISOString() ? new Date(discount.created_at) : new Date(),
   };
 };
 
@@ -67,6 +67,6 @@ export const mapDiscountResponse = (discount: DiscountEntity): IDiscount => {
 
                           
 
-    created_at: discount.created_at?.toISOString() ?? "",
+    created_at: discount.created_at?.toISOString() ? new Date(discount.created_at) : new Date(),
   };
 };
