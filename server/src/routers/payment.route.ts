@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { paymentController } from "../controllers";
-import { validate } from "../middlewares";
+import { validate, authenticateMiddleware, requireRole } from "../middlewares";
 import {
   CreatePaymentSchema,
   UpdatePaymentSchema,
@@ -9,18 +9,22 @@ import {
 const router = Router();
 
 // =====================================================
-// GET PAYMENT BY ID
+// GET PAYMENT BY ID (ADMIN / STAFF / OWNER ONLY)
 // =====================================================
 router.get(
   "/:id",
+  authenticateMiddleware,
+  requireRole(["ADMIN", "STAFF"]),
   (req, res, next) => paymentController.getPaymentById(req, res, next)
 );
 
 // =====================================================
-// GET USER PAYMENTS
+// GET USER PAYMENTS (SELF OR ADMIN/STAFF)
 // =====================================================
 router.get(
   "/user/:user_id",
+  authenticateMiddleware,
+  requireRole(["ADMIN", "STAFF"]),
   (req, res, next) => paymentController.getUserPayments(req, res, next)
 );
 
@@ -29,6 +33,8 @@ router.get(
 // =====================================================
 router.post(
   "/order/:order_id",
+  authenticateMiddleware,
+  requireRole(["CUSTOMER", "VENDOR", "ADMIN", "STAFF"]),
   validate(CreatePaymentSchema),
   (req, res, next) => paymentController.createPayment(req, res, next)
 );
@@ -38,6 +44,8 @@ router.post(
 // =====================================================
 router.patch(
   "/:id",
+  authenticateMiddleware,
+  requireRole(["ADMIN", "STAFF"]),
   validate(UpdatePaymentSchema),
   (req, res, next) => paymentController.updatePayment(req, res, next)
 );
@@ -47,6 +55,8 @@ router.patch(
 // =====================================================
 router.delete(
   "/:id",
+  authenticateMiddleware,
+  requireRole(["ADMIN"]),
   (req, res, next) => paymentController.deletePayment(req, res, next)
 );
 
@@ -55,6 +65,8 @@ router.delete(
 // =====================================================
 router.post(
   "/:id/fail",
+  authenticateMiddleware,
+  requireRole(["ADMIN", "STAFF"]),
   (req, res, next) => paymentController.failPayment(req, res, next)
 );
 
