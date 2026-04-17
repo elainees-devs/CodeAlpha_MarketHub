@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { PAYMENT_PROVIDERS, PAYMENT_STATUS } from "../utils";
-import e from "express";
+import { Decimal } from "decimal.js";
 
 
 /**
@@ -16,7 +16,7 @@ export const PaymentSchema = z.object({
 
   provider: z.enum(PAYMENT_PROVIDERS),
 
-  amount: z.number(), // Decimal -> number in app layer
+  amount: z.instanceof(Decimal), // Decimal -> number in app layer
 
   status: z.enum(PAYMENT_STATUS).optional(),
 
@@ -36,7 +36,7 @@ export const CreatePaymentSchema = z.object({
 
   provider: z.enum(PAYMENT_PROVIDERS),
 
-  amount: z.number().positive(),
+  amount: z.instanceof(Decimal),
 
   transaction_ref: z.string().optional(),
 });
@@ -66,7 +66,7 @@ export const PaymentResponseSchema = z.object({
 
   provider: z.enum(PAYMENT_PROVIDERS),
 
-  amount: z.number(),
+  amount: z.instanceof(Decimal),
   status: z.enum(PAYMENT_STATUS),
 
   transaction_ref: z.string().nullable().optional(),
