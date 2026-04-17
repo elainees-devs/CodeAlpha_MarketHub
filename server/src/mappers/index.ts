@@ -17,7 +17,7 @@ export {
 export { AuditLogEntity, IAuditLog, mapAuditLog } from "./auditLog.mapper";
 
 //User-related mappers
-export { UserEntity, mapUser } from "./user.mapper";
+export { UserEntity, mapUser, mapUserResponse } from "./user.mapper";
 
 // Product and product image related mappers
 export {
