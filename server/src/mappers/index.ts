@@ -27,6 +27,9 @@ export {
   mapProductImage,
 } from "./product.mapper";
 
+// Discount related mappers
+export { DiscountEntity, mapDiscount } from "./discount.mapper";
+
 // Category and subcategory related mappers
 export { CategoryEntity, mapCategory, mapCategoryResponse } from "./category.mapper";
 export {
