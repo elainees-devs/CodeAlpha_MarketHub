@@ -28,6 +28,6 @@ export const mapPayment = (payment: PaymentEntity): IPayment => {
     status: payment.status,
     transaction_ref: payment.transaction_ref ?? null,
     attempt_count: payment.attempt_count ?? 0,
-    created_at: payment.created_at?.toISOString() ?? "",
+    created_at: payment.created_at? new Date(payment.created_at) : new Date(),
   };
 };
