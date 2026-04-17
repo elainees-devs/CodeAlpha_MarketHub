@@ -2,7 +2,6 @@ export {authService} from "./auth.service";
 export {categoryService} from "./category.service";
 export {subcategoryService} from "./subcategory.service";
 export {productService} from "./product.service";
-export {productImageService} from "./productImage.service";
 export {userService} from "./user.service";
 export {roleService} from "./role.service";
 export {userRoleService} from "./userRole.service";
