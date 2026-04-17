@@ -1,119 +1,101 @@
 import { Request, Response, NextFunction } from "express";
 import { categoryService } from "../services";
-import { ApiError } from "../utils";
+import {
+  CreateCategoryInput,
+  UpdateCategoryInput,
+} from "../schemas";
 
 class CategoryController {
   // =====================================================
   // CREATE CATEGORY
   // =====================================================
-  async createCategory(req: Request, res: Response, next: NextFunction) {
+  async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const { name } = req.body;
+      const data: CreateCategoryInput = req.body;
 
-      if (!name) {
-        return next(new ApiError(400, "Category name is required"));
-      }
-
-      const category = await categoryService.create(name);
+      const category = await categoryService.create(data);
 
       return res.status(201).json({
         success: true,
         message: "Category created successfully",
         data: category,
       });
-    } catch (error: any) {
-      return next(new ApiError(400, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 
   // =====================================================
   // GET ALL CATEGORIES
   // =====================================================
-  async getAllCategories(req: Request, res: Response, next: NextFunction) {
+  async getAll(req: Request, res: Response, next: NextFunction) {
     try {
       const categories = await categoryService.getAll();
 
       return res.status(200).json({
         success: true,
+        message: "Categories retrieved successfully",
         data: categories,
       });
-    } catch (error: any) {
-      return next(new ApiError(500, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 
   // =====================================================
   // GET CATEGORY BY ID
   // =====================================================
-  async getCategoryById(req: Request, res: Response, next: NextFunction) {
+  async getById(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      const id = Number(req.params.id);
 
-      if (!id) {
-        return next(new ApiError(400, "Category ID is required"));
-      }
-
-      const category = await categoryService.getById(Number(id));
+      const category = await categoryService.getById(id);
 
       return res.status(200).json({
         success: true,
+        message: "Category retrieved successfully",
         data: category,
       });
-    } catch (error: any) {
-      return next(new ApiError(404, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 
   // =====================================================
   // UPDATE CATEGORY
   // =====================================================
-  async updateCategory(req: Request, res: Response, next: NextFunction) {
+  async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      const { name } = req.body;
+      const id = Number(req.params.id);
+      const data: UpdateCategoryInput = req.body;
 
-      if (!id) {
-        return next(new ApiError(400, "Category ID is required"));
-      }
-
-      if (!name) {
-        return next(new ApiError(400, "Category name is required"));
-      }
-
-      const updatedCategory = await categoryService.update(
-        Number(id),
-        name
-      );
+      const category = await categoryService.update(id, data);
 
       return res.status(200).json({
         success: true,
         message: "Category updated successfully",
-        data: updatedCategory,
+        data: category,
       });
-    } catch (error: any) {
-      return next(new ApiError(400, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 
   // =====================================================
   // DELETE CATEGORY (SOFT DELETE)
   // =====================================================
-  async deleteCategory(req: Request, res: Response, next: NextFunction) {
+  async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      const id = Number(req.params.id);
 
-      if (!id) {
-        return next(new ApiError(400, "Category ID is required"));
-      }
-
-      await categoryService.delete(Number(id));
+      await categoryService.delete(id);
 
       return res.status(200).json({
         success: true,
         message: "Category deleted successfully",
       });
-    } catch (error: any) {
-      return next(new ApiError(404, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 }
