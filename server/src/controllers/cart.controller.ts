@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { cartService } from "../services";
 import { ApiError } from "../utils";
+import { CreateCartInput } from "../schemas";
 
 class CartController {
   // =====================================================
@@ -11,17 +12,18 @@ class CartController {
       const userId = req.user?.user_id;
 
       if (!userId) {
-        return next(new ApiError(401, "Unauthorized"));
+        throw new ApiError(401, "Unauthorized");
       }
 
       const cart = await cartService.getCartByUserId(userId);
 
       return res.status(200).json({
         success: true,
+        message: "Cart retrieved successfully",
         data: cart,
       });
-    } catch (error: any) {
-      return next(new ApiError(500, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 
@@ -31,58 +33,61 @@ class CartController {
   async createCart(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.user_id;
+      const data: CreateCartInput = req.body;
 
-      const { session_id } = req.body;
-
-      const cart = await cartService.createCart(userId, session_id);
+      const cart = await cartService.createCart({
+        user_id: userId ?? data.user_id,
+        session_id: data.session_id,
+      });
 
       return res.status(201).json({
         success: true,
         message: "Cart created successfully",
         data: cart,
       });
-    } catch (error: any) {
-      return next(new ApiError(400, error.message));
+    } catch (error) {
+      next(error);
     }
   }
-// =====================================================
-// GET CART TOTALS
-// =====================================================
+
+  // =====================================================
+  // GET CART TOTALS
+  // =====================================================
   async getCartTotals(req: Request, res: Response, next: NextFunction) {
-  try {
-    const userId = req.user?.user_id;
+    try {
+      const userId = req.user?.user_id;
 
-    if (!userId) {
-      return next(new ApiError(401, "Unauthorized"));
+      if (!userId) {
+        throw new ApiError(401, "Unauthorized");
+      }
+
+      const totals = await cartService.calculateCartTotals(userId);
+
+      return res.status(200).json({
+        success: true,
+        message: "Cart totals calculated successfully",
+        data: totals,
+      });
+    } catch (error) {
+      next(error);
     }
-
-    const totals = await cartService.calculateCartTotals(userId);
-
-    return res.status(200).json({
-      success: true,
-      message: "Cart totals calculated successfully",
-      data: totals,
-    });
-  } catch (error: any) {
-    return next(new ApiError(500, error.message));
   }
-}
 
   // =====================================================
   // DELETE CART
   // =====================================================
   async deleteCart(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      const id = Number(req.params.id);
 
-      await cartService.deleteCart(Number(id));
+      await cartService.deleteCart(id);
 
       return res.status(200).json({
         success: true,
         message: "Cart deleted successfully",
       });
-    } catch (error: any) {
-      return next(new ApiError(404, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 
@@ -94,7 +99,7 @@ class CartController {
       const userId = req.user?.user_id;
 
       if (!userId) {
-        return next(new ApiError(401, "Unauthorized"));
+        throw new ApiError(401, "Unauthorized");
       }
 
       await cartService.clearCart(userId);
@@ -103,8 +108,8 @@ class CartController {
         success: true,
         message: "Cart cleared successfully",
       });
-    } catch (error: any) {
-      return next(new ApiError(500, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 
@@ -114,12 +119,10 @@ class CartController {
   async mergeGuestCart(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.user_id;
-      const { session_id } = req.body;
+      const { session_id }: { session_id: string } = req.body;
 
       if (!userId || !session_id) {
-        return next(
-          new ApiError(400, "User ID and session ID are required")
-        );
+        throw new ApiError(400, "User ID and session ID are required");
       }
 
       await cartService.mergeGuestCart(session_id, userId);
@@ -128,8 +131,8 @@ class CartController {
         success: true,
         message: "Guest cart merged successfully",
       });
-    } catch (error: any) {
-      return next(new ApiError(500, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 }
