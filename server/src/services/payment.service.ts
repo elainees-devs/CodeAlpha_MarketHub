@@ -1,8 +1,13 @@
 import { prisma, ApiError } from "../utils";
 import { IPayment } from "../types/interfaces.types";
-import { payment_provider, payment_status } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
-import { mapPayment, PaymentEntity } from "../mappers";
+import {
+  PaymentEntity,
+  mapPayment,
+} from "../mappers";
+import {
+  payment_provider,
+  payment_status,
+} from "@prisma/client";
 
 class PaymentService {
   // =====================================================
@@ -20,44 +25,47 @@ class PaymentService {
     return mapPayment(payment as PaymentEntity);
   }
 
-    // =====================================================
-  // GET PAYMENT BY ORDER ID
   // =====================================================
-
- async getUserPayments(user_id: number): Promise<IPayment[]> {
-  const payments = await prisma.payments.findMany({
-    where: {
-      orders: {
-        user_id: user_id,
+  // GET USER PAYMENTS
+  // =====================================================
+  async getUserPayments(user_id: number): Promise<IPayment[]> {
+    const payments = await prisma.payments.findMany({
+      where: {
+        orders: {
+          user_id,
+        },
       },
-    },
-    orderBy: {
-      created_at: "desc",
-    },
-  });
+      orderBy: {
+        created_at: "desc",
+      },
+    });
 
-  return payments.map((p) => mapPayment(p as PaymentEntity));
-}
+    return payments.map((p: PaymentEntity) =>
+      mapPayment(p)
+    );
+  }
 
   // =====================================================
   // CREATE PAYMENT
   // =====================================================
-  async createPayment(data: {
-    order_id: number;
-    user_id: number;
-    amount: Decimal;
-    provider: payment_provider;
-    status?: payment_status;
-    transaction_ref?: string;
-  }): Promise<IPayment> {
+  async createPayment(
+    order_id: number,
+    data: {
+      user_id: number;
+      amount: number;
+      provider: payment_provider;
+      transaction_ref?: string;
+    }
+  ): Promise<IPayment> {
     const payment = await prisma.payments.create({
       data: {
-        order_id: data.order_id,
+        order_id,
         user_id: data.user_id,
         amount: data.amount,
         provider: data.provider,
-        status: data.status ?? payment_status.PENDING,
+        status: payment_status.PENDING,
         transaction_ref: data.transaction_ref ?? null,
+        attempt_count: 1,
       },
     });
 
@@ -88,7 +96,7 @@ class PaymentService {
   }
 
   // =====================================================
-  // UPDATE TRANSACTION ID
+  // UPDATE TRANSACTION REFERENCE
   // =====================================================
   async updateTransactionRef(
     id: number,
@@ -128,7 +136,7 @@ class PaymentService {
   }
 
   // =====================================================
-  // MARK PAYMENT AS FAILED (optional helper)
+  // MARK PAYMENT AS FAILED
   // =====================================================
   async failPayment(id: number): Promise<IPayment> {
     const payment = await prisma.payments.findUnique({
