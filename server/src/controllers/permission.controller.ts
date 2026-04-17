@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { permissionService } from "../services";
+import { CreatePermissionInput, UpdatePermissionInput } from "../schemas";
 
 class PermissionController {
   // =====================================================
@@ -43,16 +44,34 @@ class PermissionController {
   // =====================================================
   async createPermission(req: Request, res: Response, next: NextFunction) {
     try {
-      const { name, description } = req.body;
+      const data: CreatePermissionInput = req.body;
 
-      const permission = await permissionService.createPermission({
-        name,
-        description,
-      });
+      const permission = await permissionService.createPermission(data);
 
       return res.status(201).json({
         success: true,
         message: "Permission created successfully",
+        data: permission,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // =====================================================
+  // UPDATE PERMISSION
+  // =====================================================
+  async updatePermission(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = Number(req.params.id);
+
+      const data: UpdatePermissionInput = req.body;
+
+      const permission = await permissionService.updatePermission(id, data);
+
+      return res.status(200).json({
+        success: true,
+        message: "Permission updated successfully",
         data: permission,
       });
     } catch (error) {
