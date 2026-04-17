@@ -45,6 +45,28 @@ class CartController {
       return next(new ApiError(400, error.message));
     }
   }
+// =====================================================
+// GET CART TOTALS
+// =====================================================
+  async getCartTotals(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.user?.user_id;
+
+    if (!userId) {
+      return next(new ApiError(401, "Unauthorized"));
+    }
+
+    const totals = await cartService.calculateCartTotals(userId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Cart totals calculated successfully",
+      data: totals,
+    });
+  } catch (error: any) {
+    return next(new ApiError(500, error.message));
+  }
+}
 
   // =====================================================
   // DELETE CART
