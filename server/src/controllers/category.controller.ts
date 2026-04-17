@@ -26,21 +26,25 @@ class CategoryController {
   }
 
   // =====================================================
-  // GET ALL CATEGORIES
-  // =====================================================
-  async getAll(req: Request, res: Response, next: NextFunction) {
-    try {
-      const categories = await categoryService.getAll();
+// GET ALL CATEGORIES
+// =====================================================
+async getAll(req: Request, res: Response, next: NextFunction) {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
 
-      return res.status(200).json({
-        success: true,
-        message: "Categories retrieved successfully",
-        data: categories,
-      });
-    } catch (error) {
-      next(error);
-    }
+    const result = await categoryService.getAll(page, limit);
+
+    return res.status(200).json({
+      success: true,
+      message: "Categories retrieved successfully",
+      data: result.data,
+      meta: result.meta,
+    });
+  } catch (error) {
+    next(error);
   }
+}
 
   // =====================================================
   // GET CATEGORY BY ID
