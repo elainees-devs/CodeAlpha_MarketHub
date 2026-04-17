@@ -3,6 +3,7 @@ import {
   CreateProductImageSchema,
   ProductImageResponseSchema,
 } from "./productImage.schema";
+import { Decimal } from "decimal.js";
 
 /**
  * Create Product Schema
@@ -48,7 +49,7 @@ export const ProductResponseSchema = z.object({
   name: z.string(),
   description: z.string().nullable().optional(),
 
-  price: z.number(),
+  price: z.instanceof(Decimal),
   stock: z.number(),
 
   product_images: z.array(ProductImageResponseSchema).optional(),
