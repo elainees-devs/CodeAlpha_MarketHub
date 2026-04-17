@@ -26,15 +26,43 @@ class DiscountService {
   }
 
   // =====================================================
-  // GET ALL DISCOUNTS
-  // =====================================================
-  async getAllDiscounts(): Promise<IDiscount[]> {
-    const discounts = await prisma.discounts.findMany({
-      orderBy: { created_at: "desc" },
-    });
+// GET ALL DISCOUNTS (PAGINATED)
+// =====================================================
+async getAllDiscounts(
+  page = 1,
+  limit = 10
+): Promise<{
+  data: IDiscount[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}> {
+  const skip = (page - 1) * limit;
 
-    return discounts.map((d) => mapDiscount(d as DiscountEntity));
-  }
+  const [discounts, total] = await Promise.all([
+    prisma.discounts.findMany({
+      orderBy: { created_at: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.discounts.count(),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    data: discounts.map((d) => mapDiscount(d as DiscountEntity)),
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages,
+    },
+  };
+}
 
   // =====================================================
   // GET ACTIVE DISCOUNTS
