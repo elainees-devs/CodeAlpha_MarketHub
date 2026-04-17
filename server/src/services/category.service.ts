@@ -1,10 +1,6 @@
 import { prisma } from "../utils";
 import { ICategory } from "../types/interfaces.types";
-import {
-  mapCategory,
-  CategoryEntity,
-  mapCategoryResponse,
-} from "../mappers";
+import { mapCategory, CategoryEntity } from "../mappers";
 import { ApiError } from "../utils";
 
 class CategoryService {
@@ -13,7 +9,10 @@ class CategoryService {
   // =====================================================
   async create(name: string): Promise<ICategory> {
     const existing = await prisma.categories.findFirst({
-      where: { name },
+      where: {
+        name,
+        deleted_at: null,
+      },
     });
 
     if (existing) {
@@ -24,7 +23,7 @@ class CategoryService {
       data: { name },
     });
 
-    return mapCategoryResponse(category as CategoryEntity);
+    return mapCategory(category as CategoryEntity);
   }
 
   // =====================================================
@@ -36,9 +35,7 @@ class CategoryService {
       orderBy: { created_at: "desc" },
     });
 
-    return categories.map((cat) =>
-      mapCategory(cat as CategoryEntity)
-    );
+    return categories.map((cat) => mapCategory(cat as CategoryEntity));
   }
 
   // =====================================================
@@ -53,7 +50,7 @@ class CategoryService {
       throw new ApiError(404, "Category not found");
     }
 
-    return mapCategoryResponse(category as CategoryEntity);
+    return mapCategory(category as CategoryEntity);
   }
 
   // =====================================================
@@ -73,7 +70,7 @@ class CategoryService {
       data: { name },
     });
 
-    return mapCategoryResponse(updated as CategoryEntity);
+    return mapCategory(updated as CategoryEntity);
   }
 
   // =====================================================
