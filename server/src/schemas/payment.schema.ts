@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PAYMENT_PROVIDERS, PAYMENT_STATUS } from "../utils";
+import e from "express";
 
 
 /**
@@ -73,3 +74,9 @@ export const PaymentResponseSchema = z.object({
 
   created_at: z.coerce.date(),
 });
+
+export type Payment = z.infer<typeof PaymentSchema>;
+export type CreatePaymentInput = z.infer<typeof CreatePaymentSchema>;
+export type UpdatePaymentInput = z.infer<typeof UpdatePaymentSchema>;
+export type DeletePaymentInput = z.infer<typeof DeletePaymentSchema>;
+export type PaymentResponse = z.infer<typeof PaymentResponseSchema>;
