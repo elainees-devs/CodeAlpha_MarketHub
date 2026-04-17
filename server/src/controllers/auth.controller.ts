@@ -1,6 +1,11 @@
 import { Request, Response, NextFunction } from "express";
-import { authService } from "../services";
-import { ApiError } from "../utils";
+import { authService } from "../services/auth.service";
+import {
+  RegisterInput,
+  LoginInput,
+  ChangePasswordInput,
+  VerifyTokenInput,
+} from "../schemas";
 
 class AuthController {
   // =====================================================
@@ -8,15 +13,17 @@ class AuthController {
   // =====================================================
   async register(req: Request, res: Response, next: NextFunction) {
     try {
-      const user = await authService.register(req.body);
+      const data: RegisterInput = req.body;
+
+      const user = await authService.register(data);
 
       return res.status(201).json({
         success: true,
         message: "User registered successfully",
         data: user,
       });
-    } catch (error: any) {
-      return next(new ApiError(400, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 
@@ -25,17 +32,17 @@ class AuthController {
   // =====================================================
   async login(req: Request, res: Response, next: NextFunction) {
     try {
-      const { email, password } = req.body;
+      const data: LoginInput = req.body;
 
-      const user = await authService.login(email, password);
+      const user = await authService.login(data);
 
       return res.status(200).json({
         success: true,
         message: "Login successful",
         data: user,
       });
-    } catch (error: any) {
-      return next(new ApiError(401, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 
@@ -44,20 +51,15 @@ class AuthController {
   // =====================================================
   async getMe(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user?.user_id;
-
-      if (!userId) {
-        return next(new ApiError(401, "Unauthorized"));
-      }
-
-      const user = await authService.getMe(userId);
+      const user = await authService.getMe(req.user!.id);
 
       return res.status(200).json({
         success: true,
+        message: "User retrieved successfully",
         data: user,
       });
-    } catch (error: any) {
-      return next(new ApiError(500, error.message));
+    } catch (error) {
+      next(error);
     }
   }
 
@@ -65,23 +67,52 @@ class AuthController {
   // CHANGE PASSWORD
   // =====================================================
   async changePassword(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.user!.id;
+    const data: ChangePasswordInput = req.body;
+
+    await authService.changePassword(userId, data);
+
+    return res.status(200).json({
+      success: true,
+      message: "Password updated successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+  // =====================================================
+  // REFRESH TOKEN
+  // =====================================================
+  async refreshToken(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user?.user_id;
-
-      if (!userId) {
-        return next(new ApiError(401, "Unauthorized"));
-      }
-
-      const { oldPassword, newPassword } = req.body;
-
-      await authService.changePassword(userId, oldPassword, newPassword);
+      const user = await authService.refreshToken(req.user!.id);
 
       return res.status(200).json({
         success: true,
-        message: "Password changed successfully",
+        message: "Token refreshed successfully",
+        data: user,
       });
-    } catch (error: any) {
-      return next(new ApiError(400, error.message));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // =====================================================
+  // VERIFY TOKEN
+  // =====================================================
+  async verifyToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data: VerifyTokenInput = req.body;
+
+      return res.status(200).json({
+        success: true,
+        message: "Token is valid",
+        token: data.token,
+      });
+    } catch (error) {
+      next(error);
     }
   }
 }
