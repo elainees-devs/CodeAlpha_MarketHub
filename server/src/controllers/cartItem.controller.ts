@@ -1,24 +1,27 @@
 import { Request, Response, NextFunction } from "express";
-import { categoryService } from "../services";
+import { cartItemService } from "../services";
 import {
-  CreateCategoryInput,
-  UpdateCategoryInput,
+  CreateCartItemInput,
+  UpdateCartItemInput,
+  CartItemResponseSchema, // Added schema import
 } from "../schemas";
 
-class CategoryController {
+class CartItemController {
   // =====================================================
-  // CREATE CATEGORY
+  // ADD ITEM TO CART
   // =====================================================
-  async create(req: Request, res: Response, next: NextFunction) {
+  async addItem(req: Request, res: Response, next: NextFunction) {
     try {
-      const data: CreateCategoryInput = req.body;
+      const data: CreateCartItemInput = req.body;
+      const item = await cartItemService.addItem(data);
 
-      const category = await categoryService.create(data);
+      // Validate response data
+      const validatedData = CartItemResponseSchema.parse(item);
 
       return res.status(201).json({
         success: true,
-        message: "Category created successfully",
-        data: category,
+        message: "Item added to cart",
+        data: validatedData,
       });
     } catch (error) {
       next(error);
@@ -26,16 +29,22 @@ class CategoryController {
   }
 
   // =====================================================
-  // GET ALL CATEGORIES
+  // GET ALL ITEMS IN CART
   // =====================================================
-  async getAll(req: Request, res: Response, next: NextFunction) {
+  async getCartItems(req: Request, res: Response, next: NextFunction) {
     try {
-      const categories = await categoryService.getAll();
+      const cart_id = Number(req.params.cart_id);
+      const items = await cartItemService.getCartItems(cart_id);
+
+      // Map through items to ensure every item matches the Response Schema
+      const validatedData = items.map((item) =>
+        CartItemResponseSchema.parse(item),
+      );
 
       return res.status(200).json({
         success: true,
-        message: "Categories retrieved successfully",
-        data: categories,
+        message: "Cart items retrieved successfully",
+        data: validatedData,
       });
     } catch (error) {
       next(error);
@@ -43,18 +52,23 @@ class CategoryController {
   }
 
   // =====================================================
-  // GET CATEGORY BY ID
+  // UPDATE ITEM QUANTITY
   // =====================================================
-  async getById(req: Request, res: Response, next: NextFunction) {
+  async updateQuantity(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
+      const item_id = Number(req.params.item_id);
+      const data: UpdateCartItemInput = req.body;
 
-      const category = await categoryService.getById(id);
+      const item = await cartItemService.updateQuantity(item_id, {
+        quantity: data.quantity,
+      });
+
+      const validatedData = CartItemResponseSchema.parse(item);
 
       return res.status(200).json({
         success: true,
-        message: "Category retrieved successfully",
-        data: category,
+        message: "Quantity updated successfully",
+        data: validatedData,
       });
     } catch (error) {
       next(error);
@@ -62,19 +76,19 @@ class CategoryController {
   }
 
   // =====================================================
-  // UPDATE CATEGORY
+  // REMOVE ITEM FROM CART
   // =====================================================
-  async update(req: Request, res: Response, next: NextFunction) {
+  async removeItem(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
-      const data: UpdateCategoryInput = req.body;
+      // Pulling both IDs from req.params to satisfy RemoveCartItemInput
+      const cart_id = Number(req.params.cart_id);
+      const product_id = Number(req.params.product_id);
 
-      const category = await categoryService.update(id, data);
+      await cartItemService.removeItem({ cart_id, product_id });
 
       return res.status(200).json({
         success: true,
-        message: "Category updated successfully",
-        data: category,
+        message: "Item removed from cart",
       });
     } catch (error) {
       next(error);
@@ -82,17 +96,44 @@ class CategoryController {
   }
 
   // =====================================================
-  // DELETE CATEGORY (SOFT DELETE)
+  // CLEAR CART
   // =====================================================
-  async delete(req: Request, res: Response, next: NextFunction) {
+  async clearCart(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
+      const cart_id = Number(req.params.cart_id);
 
-      await categoryService.delete(id);
+      await cartItemService.clearCart(cart_id);
 
       return res.status(200).json({
         success: true,
-        message: "Category deleted successfully",
+        message: "Cart cleared successfully",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // =====================================================
+  // GET SINGLE CART ITEM
+  // =====================================================
+  async getCartItemById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const item_id = Number(req.params.item_id);
+      const item = await cartItemService.getCartItemById(item_id);
+
+      if (!item) {
+        return res.status(404).json({
+          success: false,
+          message: "Cart item not found",
+        });
+      }
+
+      const validatedData = CartItemResponseSchema.parse(item);
+
+      return res.status(200).json({
+        success: true,
+        message: "Cart item retrieved successfully",
+        data: validatedData,
       });
     } catch (error) {
       next(error);
@@ -100,4 +141,4 @@ class CategoryController {
   }
 }
 
-export const categoryController = new CategoryController();
+export const cartItemController = new CartItemController();
