@@ -2,6 +2,7 @@ import { prisma, ApiError } from "../utils";
 import { discount_type } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { mapDiscount, DiscountEntity } from "../mappers";
+import { auditLogService } from "./auditLog.service";
 
 import {
   CreateDiscountInput,
@@ -28,7 +29,7 @@ class DiscountService {
   }
 
   // =====================================================
-  // GET ALL DISCOUNTS (PAGINATED)
+  // GET ALL DISCOUNTS
   // =====================================================
   async getAllDiscounts(
     page = 1,
@@ -53,45 +54,25 @@ class DiscountService {
       prisma.discounts.count(),
     ]);
 
-    const totalPages = Math.ceil(total / limit);
-
     return {
-      data: discounts.map((d) =>
-        mapDiscount(d as DiscountEntity)
-      ),
+      data: discounts.map((d) => mapDiscount(d as DiscountEntity)),
       meta: {
         total,
         page,
         limit,
-        totalPages,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
 
   // =====================================================
-  // GET ACTIVE DISCOUNTS
-  // =====================================================
-  async getActiveDiscounts(): Promise<DiscountResponse[]> {
-    const now = new Date();
-
-    const discounts = await prisma.discounts.findMany({
-      where: {
-        is_active: true,
-        start_date: { lte: now },
-        end_date: { gte: now },
-      },
-      orderBy: { created_at: "desc" },
-    });
-
-    return discounts.map((d) =>
-      mapDiscount(d as DiscountEntity)
-    );
-  }
-
-  // =====================================================
   // CREATE DISCOUNT
   // =====================================================
-  async createDiscount(data: CreateDiscountInput): Promise<DiscountResponse> {
+  async createDiscount(
+    data: CreateDiscountInput,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<DiscountResponse> {
     const discount = await prisma.discounts.create({
       data: {
         product_id: data.product_id,
@@ -105,6 +86,16 @@ class DiscountService {
       },
     });
 
+    await auditLogService.createAuditLog({
+      table_name: "discounts",
+      record_id: discount.id,
+      action: "CREATE",
+      changed_by,
+      session_id,
+      old_data: null,
+      new_data: discount,
+    });
+
     return mapDiscount(discount as DiscountEntity);
   }
 
@@ -113,7 +104,9 @@ class DiscountService {
   // =====================================================
   async updateDiscount(
     id: number,
-    data: UpdateDiscountInput
+    data: UpdateDiscountInput,
+    changed_by?: number,
+    session_id?: string
   ): Promise<DiscountResponse> {
     const exists = await prisma.discounts.findUnique({
       where: { id },
@@ -141,13 +134,27 @@ class DiscountService {
       },
     });
 
+    await auditLogService.createAuditLog({
+      table_name: "discounts",
+      record_id: updated.id,
+      action: "UPDATE",
+      changed_by,
+      session_id,
+      old_data: exists,
+      new_data: updated,
+    });
+
     return mapDiscount(updated as DiscountEntity);
   }
 
   // =====================================================
   // DELETE DISCOUNT
   // =====================================================
-  async deleteDiscount(data: DeleteDiscountIdParam): Promise<void> {
+  async deleteDiscount(
+    data: DeleteDiscountIdParam,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<void> {
     const exists = await prisma.discounts.findUnique({
       where: { id: data.id },
     });
@@ -159,12 +166,26 @@ class DiscountService {
     await prisma.discounts.delete({
       where: { id: data.id },
     });
+
+    await auditLogService.createAuditLog({
+      table_name: "discounts",
+      record_id: data.id,
+      action: "DELETE",
+      changed_by,
+      session_id,
+      old_data: exists,
+      new_data: null,
+    });
   }
 
   // =====================================================
   // TOGGLE DISCOUNT STATUS
   // =====================================================
-  async toggleDiscountStatus(id: number): Promise<DiscountResponse> {
+  async toggleDiscountStatus(
+    id: number,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<DiscountResponse> {
     const discount = await prisma.discounts.findUnique({
       where: { id },
     });
@@ -180,15 +201,23 @@ class DiscountService {
       },
     });
 
+    await auditLogService.createAuditLog({
+      table_name: "discounts",
+      record_id: id,
+      action: "UPDATE",
+      changed_by,
+      session_id,
+      old_data: discount,
+      new_data: updated,
+    });
+
     return mapDiscount(updated as DiscountEntity);
   }
 
   // =====================================================
   // VALIDATE DISCOUNT CODE
   // =====================================================
-  async validateDiscount(
-    data: ValidateDiscountCodeInput
-  ): Promise<DiscountResponse> {
+  async validateDiscount(data: ValidateDiscountCodeInput): Promise<DiscountResponse> {
     const now = new Date();
 
     const discount = await prisma.discounts.findFirst({
