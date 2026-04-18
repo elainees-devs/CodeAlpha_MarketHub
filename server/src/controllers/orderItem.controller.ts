@@ -1,5 +1,11 @@
 import { Request, Response, NextFunction } from "express";
-import {orderItemService} from "../services";
+import { orderItemService } from "../services";
+import {
+  CreateOrderItemSchema,
+  UpdateOrderItemSchema,
+  DeleteOrderItemSchema,
+  OrderItemResponse,
+} from "../schemas/orderItem.schema";
 
 class OrderItemController {
   // =====================================================
@@ -7,12 +13,13 @@ class OrderItemController {
   // =====================================================
   async createOrderItem(req: Request, res: Response, next: NextFunction) {
     try {
-      const orderItem = await orderItemService.createOrderItem(req.body);
+      const validatedData = CreateOrderItemSchema.parse(req.body);
+      const orderItem = await orderItemService.createOrderItem(validatedData);
 
       return res.status(201).json({
         success: true,
         message: "Order item created successfully",
-        data: orderItem,
+        data: orderItem as OrderItemResponse,
       });
     } catch (error) {
       next(error);
@@ -24,14 +31,14 @@ class OrderItemController {
   // =====================================================
   async getOrderItemById(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
+      const { id } = DeleteOrderItemSchema.parse({ id: Number(req.params.id) });
 
       const orderItem = await orderItemService.getOrderItemById(id);
 
       return res.status(200).json({
         success: true,
         message: "Order item retrieved successfully",
-        data: orderItem,
+        data: orderItem as OrderItemResponse,
       });
     } catch (error) {
       next(error);
@@ -41,14 +48,14 @@ class OrderItemController {
   // =====================================================
   // GET ALL ORDER ITEMS
   // =====================================================
-  async getAllOrderItems(req: Request, res: Response, next: NextFunction) {
+  async getAllOrderItems(_req: Request, res: Response, next: NextFunction) {
     try {
       const orderItems = await orderItemService.getAllOrderItems();
 
       return res.status(200).json({
         success: true,
         message: "Order items retrieved successfully",
-        data: orderItems,
+        data: orderItems as OrderItemResponse[],
       });
     } catch (error) {
       next(error);
@@ -60,14 +67,13 @@ class OrderItemController {
   // =====================================================
   async getItemsByOrderId(req: Request, res: Response, next: NextFunction) {
     try {
-      const order_id = Number(req.params.orderId);
-
-      const items = await orderItemService.getItemsByOrderId(order_id);
+      const orderId = Number(req.params.orderId);
+      const items = await orderItemService.getItemsByOrderId(orderId);
 
       return res.status(200).json({
         success: true,
         message: "Order items retrieved successfully",
-        data: items,
+        data: items as OrderItemResponse[],
       });
     } catch (error) {
       next(error);
@@ -79,14 +85,15 @@ class OrderItemController {
   // =====================================================
   async updateOrderItem(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
+      const { id } = DeleteOrderItemSchema.parse({ id: Number(req.params.id) });
+      const validatedData = UpdateOrderItemSchema.parse(req.body);
 
-      const updated = await orderItemService.updateOrderItem(id, req.body);
+      const updated = await orderItemService.updateOrderItem(id, validatedData);
 
       return res.status(200).json({
         success: true,
         message: "Order item updated successfully",
-        data: updated,
+        data: updated as OrderItemResponse,
       });
     } catch (error) {
       next(error);
@@ -98,7 +105,7 @@ class OrderItemController {
   // =====================================================
   async deleteOrderItem(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
+      const { id } = DeleteOrderItemSchema.parse({ id: Number(req.params.id) });
 
       const result = await orderItemService.deleteOrderItem(id);
 
