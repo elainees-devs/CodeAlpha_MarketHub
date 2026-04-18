@@ -77,6 +77,10 @@ export const DiscountIdParamSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
 
+export const DeleteDiscountIdParamSchema = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
 /**
  * ===============================
  * TYPES
@@ -87,3 +91,4 @@ export type CreateDiscountInput = z.infer<typeof CreateDiscountSchema>;
 export type UpdateDiscountInput = z.infer<typeof UpdateDiscountSchema>;
 export type DiscountIdParam = z.infer<typeof DiscountIdParamSchema>;
 export type ValidateDiscountCodeInput = z.infer<typeof ValidateDiscountCodeSchema>;
+export type DeleteDiscountIdParam = z.infer<typeof DeleteDiscountIdParamSchema>;
