@@ -8,7 +8,7 @@ import { z } from "zod";
 // DB Cart Item Schema (internal)
 export const CartItemSchema = z.object({
   id: z.number(),
-  cart_id: z.number().nullable(),
+  cart_id: z.number(),
   product_id: z.number().nullable(),
   quantity: z.number().int().positive(),
   created_at: z.coerce.date().optional(),
@@ -17,7 +17,7 @@ export const CartItemSchema = z.object({
 });
 
 export const CreateCartItemSchema = z.object({
-  cart_id: z.number().optional(),
+  cart_id: z.number(),
   product_id: z.number(),
   quantity: z.number().int().min(1),
 });
