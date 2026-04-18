@@ -1,11 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { orderItemService } from "../services";
-import {
-  CreateOrderItemSchema,
-  UpdateOrderItemSchema,
-  DeleteOrderItemSchema,
-  OrderItemResponse,
-} from "../schemas/orderItem.schema";
+import { ApiError } from "../utils";
 
 class OrderItemController {
   // =====================================================
@@ -13,16 +8,30 @@ class OrderItemController {
   // =====================================================
   async createOrderItem(req: Request, res: Response, next: NextFunction) {
     try {
-      const validatedData = CreateOrderItemSchema.parse(req.body);
-      const orderItem = await orderItemService.createOrderItem(validatedData);
+      const { order_id, product_id, quantity, price } = req.body;
+
+      if (!order_id || !product_id || !quantity || !price) {
+        return next(
+          new ApiError(
+            400,
+            "order_id, product_id, quantity, and price are required"
+          )
+        );
+      }
+
+      const orderItem = await orderItemService.createOrderItem(
+        { order_id, product_id, quantity, price },
+        (req as any).user?.id,
+        (req as any).session_id
+      );
 
       return res.status(201).json({
         success: true,
         message: "Order item created successfully",
-        data: orderItem as OrderItemResponse,
+        data: orderItem,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(400, error.message));
     }
   }
 
@@ -31,34 +40,34 @@ class OrderItemController {
   // =====================================================
   async getOrderItemById(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = DeleteOrderItemSchema.parse({ id: Number(req.params.id) });
+      const id = Number(req.params.id);
 
       const orderItem = await orderItemService.getOrderItemById(id);
 
       return res.status(200).json({
         success: true,
         message: "Order item retrieved successfully",
-        data: orderItem as OrderItemResponse,
+        data: orderItem,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 
   // =====================================================
   // GET ALL ORDER ITEMS
   // =====================================================
-  async getAllOrderItems(_req: Request, res: Response, next: NextFunction) {
+  async getAllOrderItems(req: Request, res: Response, next: NextFunction) {
     try {
       const orderItems = await orderItemService.getAllOrderItems();
 
       return res.status(200).json({
         success: true,
         message: "Order items retrieved successfully",
-        data: orderItems as OrderItemResponse[],
+        data: orderItems,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(500, error.message));
     }
   }
 
@@ -67,16 +76,17 @@ class OrderItemController {
   // =====================================================
   async getItemsByOrderId(req: Request, res: Response, next: NextFunction) {
     try {
-      const orderId = Number(req.params.orderId);
-      const items = await orderItemService.getItemsByOrderId(orderId);
+      const order_id = Number(req.params.order_id);
+
+      const items = await orderItemService.getItemsByOrderId(order_id);
 
       return res.status(200).json({
         success: true,
         message: "Order items retrieved successfully",
-        data: items as OrderItemResponse[],
+        data: items,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(500, error.message));
     }
   }
 
@@ -85,18 +95,29 @@ class OrderItemController {
   // =====================================================
   async updateOrderItem(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = DeleteOrderItemSchema.parse({ id: Number(req.params.id) });
-      const validatedData = UpdateOrderItemSchema.parse(req.body);
+      const id = Number(req.params.id);
+      const { quantity, price } = req.body;
 
-      const updated = await orderItemService.updateOrderItem(id, validatedData);
+      if (quantity === undefined && price === undefined) {
+        return next(
+          new ApiError(400, "At least quantity or price must be provided")
+        );
+      }
+
+      const updated = await orderItemService.updateOrderItem(
+        id,
+        { quantity, price },
+        (req as any).user?.id,
+        (req as any).session_id
+      );
 
       return res.status(200).json({
         success: true,
         message: "Order item updated successfully",
-        data: updated as OrderItemResponse,
+        data: updated,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 
@@ -105,18 +126,22 @@ class OrderItemController {
   // =====================================================
   async deleteOrderItem(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = DeleteOrderItemSchema.parse({ id: Number(req.params.id) });
+      const id = Number(req.params.id);
 
-      const result = await orderItemService.deleteOrderItem(id);
+      const result = await orderItemService.deleteOrderItem(
+        id,
+        (req as any).user?.id,
+        (req as any).session_id
+      );
 
       return res.status(200).json({
         success: true,
         message: result.message,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 }
 
-export default new OrderItemController();
+export const orderItemController = new OrderItemController();
