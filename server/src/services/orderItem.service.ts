@@ -1,21 +1,20 @@
-import { prisma } from "../utils";
-import { IOrderItem } from "../types/interfaces.types";
+import { prisma, ApiError } from "../utils";
 import { Decimal } from "@prisma/client/runtime/library";
+import { 
+  OrderItemResponse, 
+  CreateOrderItemInput, 
+  UpdateOrderItemInput 
+} from "../schemas/orderItem.schema";
 import { mapOrderItem, OrderItemEntity } from "../mappers";
 
 class OrderItemService {
   // =====================================================
   // CREATE ORDER ITEM
   // =====================================================
-  async createOrderItem(data: {
-    order_id: number;
-    product_id: number;
-    quantity: number;
-    price: Decimal;
-  }): Promise<IOrderItem> {
+  async createOrderItem(data: CreateOrderItemInput): Promise<OrderItemResponse> {
     const orderItem = await prisma.order_items.create({
       data: {
-        order_id: data.order_id,
+        order_id: data.order_id ?? 0, // Fallback if order_id is optional in schema
         product_id: data.product_id,
         quantity: data.quantity,
         price: new Decimal(data.price),
@@ -28,13 +27,13 @@ class OrderItemService {
   // =====================================================
   // GET ORDER ITEM BY ID
   // =====================================================
-  async getOrderItemById(id: number): Promise<IOrderItem> {
+  async getOrderItemById(id: number): Promise<OrderItemResponse> {
     const orderItem = await prisma.order_items.findUnique({
       where: { id },
     });
 
     if (!orderItem) {
-      throw new Error("Order item not found");
+      throw new ApiError(404, "Order item not found");
     }
 
     return mapOrderItem(orderItem as OrderItemEntity);
@@ -43,28 +42,28 @@ class OrderItemService {
   // =====================================================
   // GET ALL ORDER ITEMS
   // =====================================================
-  async getAllOrderItems(): Promise<IOrderItem[]> {
+  async getAllOrderItems(): Promise<OrderItemResponse[]> {
     const orderItems = await prisma.order_items.findMany({
+      where: { deleted_at: null },
       orderBy: { created_at: "desc" },
     });
 
-    return orderItems.map((item) =>
-      mapOrderItem(item as OrderItemEntity)
-    );
+    return orderItems.map((item) => mapOrderItem(item as OrderItemEntity));
   }
 
   // =====================================================
   // GET ITEMS BY ORDER ID
   // =====================================================
-  async getItemsByOrderId(order_id: number): Promise<IOrderItem[]> {
+  async getItemsByOrderId(order_id: number): Promise<OrderItemResponse[]> {
     const orderItems = await prisma.order_items.findMany({
-      where: { order_id },
+      where: { 
+        order_id,
+        deleted_at: null 
+      },
       orderBy: { created_at: "desc" },
     });
 
-    return orderItems.map((item) =>
-      mapOrderItem(item as OrderItemEntity)
-    );
+    return orderItems.map((item) => mapOrderItem(item as OrderItemEntity));
   }
 
   // =====================================================
@@ -72,11 +71,14 @@ class OrderItemService {
   // =====================================================
   async updateOrderItem(
     id: number,
-    data: {
-      quantity?: number;
-      price?: Decimal;
+    data: UpdateOrderItemInput
+  ): Promise<OrderItemResponse> {
+    const exists = await prisma.order_items.findUnique({ where: { id } });
+
+    if (!exists) {
+      throw new ApiError(404, "Order item not found");
     }
-  ): Promise<IOrderItem> {
+
     const orderItem = await prisma.order_items.update({
       where: { id },
       data: {
@@ -94,6 +96,12 @@ class OrderItemService {
   // SOFT DELETE ORDER ITEM
   // =====================================================
   async deleteOrderItem(id: number): Promise<{ message: string }> {
+    const exists = await prisma.order_items.findUnique({ where: { id } });
+
+    if (!exists) {
+      throw new ApiError(404, "Order item not found");
+    }
+
     await prisma.order_items.update({
       where: { id },
       data: {
