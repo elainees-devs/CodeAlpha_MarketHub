@@ -12,16 +12,42 @@ import { auditLogService } from "./auditLog.service";
 
 class PermissionService {
   // =====================================================
-  // GET ALL PERMISSIONS
+  // GET ALL PERMISSIONS (PAGINATED)
   // =====================================================
-  async getAllPermissions() {
-    const permissions = await prisma.permissions.findMany({
-      orderBy: { created_at: "desc" },
-    });
+  async getAllPermissions(
+    page = 1,
+    limit = 10
+  ): Promise<{
+    data: ReturnType<typeof mapPermissionResponse>[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const skip = (page - 1) * limit;
 
-    return permissions.map((p: PermissionEntity) =>
-      mapPermissionResponse(p)
-    );
+    const [permissions, total] = await Promise.all([
+      prisma.permissions.findMany({
+        orderBy: { created_at: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.permissions.count(),
+    ]);
+
+    return {
+      data: permissions.map((p: PermissionEntity) =>
+        mapPermissionResponse(p)
+      ),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   // =====================================================
