@@ -1,22 +1,26 @@
 import { Request, Response, NextFunction } from "express";
 import { userService } from "../services";
-import { UpdateUserInput } from "../schemas/user.schema";
+import { ApiError } from "../utils";
 
 class UserController {
   // =====================================================
-  // GET ALL USERS
+  // GET ALL USERS (PAGINATED)
   // =====================================================
   async getAllUsers(req: Request, res: Response, next: NextFunction) {
     try {
-      const users = await userService.getAllUsers();
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 10;
+
+      const result = await userService.getAllUsers(page, limit);
 
       return res.status(200).json({
         success: true,
         message: "Users retrieved successfully",
-        data: users,
+        data: result.data,
+        meta: result.meta,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(500, error.message));
     }
   }
 
@@ -29,13 +33,17 @@ class UserController {
 
       const user = await userService.getUserById(id);
 
+      if (!user) {
+        return next(new ApiError(404, "User not found"));
+      }
+
       return res.status(200).json({
         success: true,
         message: "User retrieved successfully",
         data: user,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(500, error.message));
     }
   }
 
@@ -48,13 +56,17 @@ class UserController {
 
       const user = await userService.getUserByEmail(email);
 
+      if (!user) {
+        return next(new ApiError(404, "User not found"));
+      }
+
       return res.status(200).json({
         success: true,
         message: "User retrieved successfully",
         data: user,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(500, error.message));
     }
   }
 
@@ -64,17 +76,21 @@ class UserController {
   async updateUser(req: Request, res: Response, next: NextFunction) {
     try {
       const id = Number(req.params.id);
-      const data: UpdateUserInput = req.body;
 
-      const user = await userService.updateUser(id, data);
+      const user = await userService.updateUser(
+        id,
+        req.body,
+        (req as any).user?.id,
+        (req as any).session_id
+      );
 
       return res.status(200).json({
         success: true,
         message: "User updated successfully",
         data: user,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(400, error.message));
     }
   }
 
@@ -85,14 +101,18 @@ class UserController {
     try {
       const id = Number(req.params.id);
 
-      await userService.deleteUser(id);
+      await userService.deleteUser(
+        {id},
+        (req as any).user?.id,
+        (req as any).session_id
+      );
 
       return res.status(200).json({
         success: true,
         message: "User deleted successfully",
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 }
