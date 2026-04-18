@@ -4,6 +4,7 @@ import { mapCart, CartEntity } from "../mappers";
 
 import {
   CreateCartInput,
+  DeleteCartInput,
   UpdateCartInput,
 } from "../schemas/cart.schema";
 
@@ -50,14 +51,13 @@ class CartService {
     const cart = await prisma.carts.update({
       where: { id },
       data: {
-        user_id: data.user_id,
-        session_id: data.session_id,
+        ...(data.user_id !== undefined && { user_id: data.user_id }),
+        ...(data.session_id !== undefined && { session_id: data.session_id }),
       },
     });
 
     return mapCart(cart as CartEntity);
   }
-
   // =====================================================
   // CALCULATE CART TOTALS
   // =====================================================
@@ -103,7 +103,7 @@ class CartService {
       let itemDiscount = 0;
 
       const applicableDiscount = item.products.discounts.find((d) =>
-        discounts.some((ad) => ad.id === d.id)
+        discounts.some((ad) => ad.id === d.id),
       );
 
       if (applicableDiscount) {
@@ -140,9 +140,9 @@ class CartService {
   // =====================================================
   // DELETE CART
   // =====================================================
-  async deleteCart(id: number): Promise<void> {
+  async deleteCart(data: DeleteCartInput): Promise<void> {
     const exists = await prisma.carts.findUnique({
-      where: { id },
+      where: { id: data.id },
     });
 
     if (!exists) {
@@ -150,7 +150,7 @@ class CartService {
     }
 
     await prisma.carts.delete({
-      where: { id },
+      where: { id: data.id },
     });
   }
 
@@ -195,7 +195,7 @@ class CartService {
 
     for (const guestItem of guestCart.cart_items) {
       const existingItem = userCart.cart_items.find(
-        (i) => i.product_id === guestItem.product_id
+        (i) => i.product_id === guestItem.product_id,
       );
 
       if (existingItem) {
