@@ -23,10 +23,8 @@ export const mapOrderItem = (item: OrderItemEntity): IOrderItem => {
     order_id: item.order_id,
     product_id: item.product_id,
     quantity: item.quantity,
-    price: item.price,
-    created_at: item.created_at?.toISOString() ?? "",
-    deleted_at: item.deleted_at
-      ? item.deleted_at.toISOString()
-      : null,
+    price: Number(item.price), // convert Decimal to number
+    created_at: item.created_at ? new Date(item.created_at) : new Date(),
+    deleted_at: item.deleted_at ? new Date(item.deleted_at) : null,
   };
 };
