@@ -1,24 +1,41 @@
 import { prisma, ApiError } from "../utils";
 import { Decimal } from "@prisma/client/runtime/library";
-import { 
-  OrderItemResponse, 
-  CreateOrderItemInput, 
-  UpdateOrderItemInput 
+
+import {
+  OrderItemResponse,
+  CreateOrderItemInput,
+  UpdateOrderItemInput,
 } from "../schemas/orderItem.schema";
+
 import { mapOrderItem, OrderItemEntity } from "../mappers";
+import { auditLogService } from "./auditLog.service";
 
 class OrderItemService {
   // =====================================================
   // CREATE ORDER ITEM
   // =====================================================
-  async createOrderItem(data: CreateOrderItemInput): Promise<OrderItemResponse> {
+  async createOrderItem(
+    data: CreateOrderItemInput,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<OrderItemResponse> {
     const orderItem = await prisma.order_items.create({
       data: {
-        order_id: data.order_id ?? 0, // Fallback if order_id is optional in schema
+        order_id: data.order_id,
         product_id: data.product_id,
         quantity: data.quantity,
         price: new Decimal(data.price),
       },
+    });
+
+    await auditLogService.createAuditLog({
+      table_name: "order_items",
+      record_id: orderItem.id,
+      action: "CREATE",
+      changed_by,
+      session_id,
+      old_data: null,
+      new_data: orderItem,
     });
 
     return mapOrderItem(orderItem as OrderItemEntity);
@@ -48,7 +65,9 @@ class OrderItemService {
       orderBy: { created_at: "desc" },
     });
 
-    return orderItems.map((item) => mapOrderItem(item as OrderItemEntity));
+    return orderItems.map((item) =>
+      mapOrderItem(item as OrderItemEntity)
+    );
   }
 
   // =====================================================
@@ -56,14 +75,16 @@ class OrderItemService {
   // =====================================================
   async getItemsByOrderId(order_id: number): Promise<OrderItemResponse[]> {
     const orderItems = await prisma.order_items.findMany({
-      where: { 
+      where: {
         order_id,
-        deleted_at: null 
+        deleted_at: null,
       },
       orderBy: { created_at: "desc" },
     });
 
-    return orderItems.map((item) => mapOrderItem(item as OrderItemEntity));
+    return orderItems.map((item) =>
+      mapOrderItem(item as OrderItemEntity)
+    );
   }
 
   // =====================================================
@@ -71,15 +92,19 @@ class OrderItemService {
   // =====================================================
   async updateOrderItem(
     id: number,
-    data: UpdateOrderItemInput
+    data: UpdateOrderItemInput,
+    changed_by?: number,
+    session_id?: string
   ): Promise<OrderItemResponse> {
-    const exists = await prisma.order_items.findUnique({ where: { id } });
+    const exists = await prisma.order_items.findUnique({
+      where: { id },
+    });
 
     if (!exists) {
       throw new ApiError(404, "Order item not found");
     }
 
-    const orderItem = await prisma.order_items.update({
+    const updated = await prisma.order_items.update({
       where: { id },
       data: {
         ...(data.quantity !== undefined && { quantity: data.quantity }),
@@ -89,14 +114,30 @@ class OrderItemService {
       },
     });
 
-    return mapOrderItem(orderItem as OrderItemEntity);
+    await auditLogService.createAuditLog({
+      table_name: "order_items",
+      record_id: id,
+      action: "UPDATE",
+      changed_by,
+      session_id,
+      old_data: exists,
+      new_data: updated,
+    });
+
+    return mapOrderItem(updated as OrderItemEntity);
   }
 
   // =====================================================
   // SOFT DELETE ORDER ITEM
   // =====================================================
-  async deleteOrderItem(id: number): Promise<{ message: string }> {
-    const exists = await prisma.order_items.findUnique({ where: { id } });
+  async deleteOrderItem(
+    id: number,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<{ message: string }> {
+    const exists = await prisma.order_items.findUnique({
+      where: { id },
+    });
 
     if (!exists) {
       throw new ApiError(404, "Order item not found");
@@ -107,6 +148,16 @@ class OrderItemService {
       data: {
         deleted_at: new Date(),
       },
+    });
+
+    await auditLogService.createAuditLog({
+      table_name: "order_items",
+      record_id: id,
+      action: "DELETE",
+      changed_by,
+      session_id,
+      old_data: exists,
+      new_data: { deleted_at: new Date() },
     });
 
     return { message: "Order item deleted successfully" };
