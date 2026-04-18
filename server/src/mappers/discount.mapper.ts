@@ -39,11 +39,15 @@ export const mapDiscount = (discount: DiscountEntity): IDiscount => {
     discount_type: discount.discount_type,
     value: discount.value,
 
-    start_date: discount.start_date?.toISOString() ?? "",
-    end_date: discount.end_date?.toISOString() ?? "",
+    start_date: discount.start_date
+      ? new Date(discount.start_date)
+      : new Date(),
+    end_date: discount.end_date ? new Date(discount.end_date) : new Date(),
     is_active: discount.is_active,
 
-    created_at: discount.created_at?.toISOString() ? new Date(discount.created_at) : new Date(),
+    created_at: discount.created_at
+      ? new Date(discount.created_at)
+      : new Date(),
   };
 };
 
@@ -62,11 +66,15 @@ export const mapDiscountResponse = (discount: DiscountEntity): IDiscount => {
     value: discount.value,
     is_active: discount.is_active,
 
-    start_date: discount.start_date?.toISOString() ,
-    end_date: discount.end_date?.toISOString(),
+    start_date: discount.start_date
+      ? new Date(discount.start_date)
+      : new Date(),
+    end_date: discount.end_date
+      ? new Date(discount.end_date)
+      : new Date(),
 
-                          
-
-    created_at: discount.created_at?.toISOString() ? new Date(discount.created_at) : new Date(),
+    created_at: discount.created_at
+      ? new Date(discount.created_at)
+      : new Date(),
   };
 };
