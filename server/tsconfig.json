@@ -14,7 +14,7 @@
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
-    // "types": ["jest"],
+   //  "types": ["jest"],
 
     /* =========================
        MODULE RESOLUTION
