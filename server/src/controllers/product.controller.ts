@@ -1,25 +1,26 @@
 import { Request, Response, NextFunction } from "express";
-import { productService } from "../services/product.service";
-import {
-  CreateProductInput,
-  UpdateProductInput,
-} from "../schemas";
+import { productService } from "../services";
+import { ApiError } from "../utils";
 
 class ProductController {
   // =====================================================
-  // GET ALL PRODUCTS
+  // GET ALL PRODUCTS (PAGINATED)
   // =====================================================
   async getAllProducts(req: Request, res: Response, next: NextFunction) {
     try {
-      const products = await productService.getAllProducts();
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 10;
+
+      const result = await productService.getAllProducts(page, limit);
 
       return res.status(200).json({
         success: true,
         message: "Products retrieved successfully",
-        data: products,
+        data: result.data,
+        meta: result.meta,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(500, error.message));
     }
   }
 
@@ -37,8 +38,8 @@ class ProductController {
         message: "Product retrieved successfully",
         data: product,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 
@@ -47,21 +48,23 @@ class ProductController {
   // =====================================================
   async createProduct(req: Request, res: Response, next: NextFunction) {
     try {
-      const data: CreateProductInput = req.body;
+      const data = req.body;
       const files = req.files as Express.Multer.File[] | undefined;
 
-      const product = await productService.createProductWithImages(
+      const result = await productService.createProductWithImages(
         data,
-        files
+        files,
+        (req as any).user?.id,
+        (req as any).session_id
       );
 
       return res.status(201).json({
         success: true,
         message: "Product created successfully",
-        data: product,
+        data: result,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(400, error.message));
     }
   }
 
@@ -71,17 +74,22 @@ class ProductController {
   async updateProduct(req: Request, res: Response, next: NextFunction) {
     try {
       const id = Number(req.params.id);
-      const data: UpdateProductInput = req.body;
+      const data = req.body;
 
-      const product = await productService.updateProduct(id, data);
+      const result = await productService.updateProduct(
+        id,
+        data,
+        (req as any).user?.id,
+        (req as any).session_id
+      );
 
       return res.status(200).json({
         success: true,
         message: "Product updated successfully",
-        data: product,
+        data: result,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(400, error.message));
     }
   }
 
@@ -92,19 +100,23 @@ class ProductController {
     try {
       const id = Number(req.params.id);
 
-      await productService.deleteProduct(id);
+      await productService.deleteProduct(
+        id,
+        (req as any).user?.id,
+        (req as any).session_id
+      );
 
       return res.status(200).json({
         success: true,
         message: "Product deleted successfully",
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 
   // =====================================================
-  // ADD IMAGES TO PRODUCT
+  // ADD PRODUCT IMAGES
   // =====================================================
   async addProductImages(req: Request, res: Response, next: NextFunction) {
     try {
@@ -113,16 +125,18 @@ class ProductController {
 
       const result = await productService.addProductImages(
         productId,
-        files
+        files,
+        (req as any).user?.id,
+        (req as any).session_id
       );
 
       return res.status(201).json({
         success: true,
-        message: "Images added successfully",
+        message: "Product images added successfully",
         data: result,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(400, error.message));
     }
   }
 
@@ -136,7 +150,9 @@ class ProductController {
 
       const result = await productService.setMainImage(
         productId,
-        imageId
+        imageId,
+        (req as any).user?.id,
+        (req as any).session_id
       );
 
       return res.status(200).json({
@@ -144,8 +160,8 @@ class ProductController {
         message: "Main image updated successfully",
         data: result,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(400, error.message));
     }
   }
 }
