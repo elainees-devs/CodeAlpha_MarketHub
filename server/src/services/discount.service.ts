@@ -1,21 +1,21 @@
 import { prisma, ApiError } from "../utils";
-import { IDiscount } from "../types/interfaces.types";
 import { discount_type } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 import { mapDiscount, DiscountEntity } from "../mappers";
 
 import {
   CreateDiscountInput,
-  DeleteDiscountIdParam,
   UpdateDiscountInput,
   ValidateDiscountCodeInput,
+  DeleteDiscountIdParam,
+  DiscountResponse,
 } from "../schemas";
 
 class DiscountService {
   // =====================================================
   // GET DISCOUNT BY ID
   // =====================================================
-  async getDiscountById(id: number): Promise<IDiscount> {
+  async getDiscountById(id: number): Promise<DiscountResponse> {
     const discount = await prisma.discounts.findUnique({
       where: { id },
     });
@@ -34,7 +34,7 @@ class DiscountService {
     page = 1,
     limit = 10
   ): Promise<{
-    data: IDiscount[];
+    data: DiscountResponse[];
     meta: {
       total: number;
       page: number;
@@ -56,7 +56,9 @@ class DiscountService {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      data: discounts.map((d) => mapDiscount(d as DiscountEntity)),
+      data: discounts.map((d) =>
+        mapDiscount(d as DiscountEntity)
+      ),
       meta: {
         total,
         page,
@@ -69,7 +71,7 @@ class DiscountService {
   // =====================================================
   // GET ACTIVE DISCOUNTS
   // =====================================================
-  async getActiveDiscounts(): Promise<IDiscount[]> {
+  async getActiveDiscounts(): Promise<DiscountResponse[]> {
     const now = new Date();
 
     const discounts = await prisma.discounts.findMany({
@@ -81,13 +83,15 @@ class DiscountService {
       orderBy: { created_at: "desc" },
     });
 
-    return discounts.map((d) => mapDiscount(d as DiscountEntity));
+    return discounts.map((d) =>
+      mapDiscount(d as DiscountEntity)
+    );
   }
 
   // =====================================================
   // CREATE DISCOUNT
   // =====================================================
-  async createDiscount(data: CreateDiscountInput): Promise<IDiscount> {
+  async createDiscount(data: CreateDiscountInput): Promise<DiscountResponse> {
     const discount = await prisma.discounts.create({
       data: {
         product_id: data.product_id,
@@ -110,7 +114,7 @@ class DiscountService {
   async updateDiscount(
     id: number,
     data: UpdateDiscountInput
-  ): Promise<IDiscount> {
+  ): Promise<DiscountResponse> {
     const exists = await prisma.discounts.findUnique({
       where: { id },
     });
@@ -143,27 +147,24 @@ class DiscountService {
   // =====================================================
   // DELETE DISCOUNT
   // =====================================================
-  // =====================================================
-// DELETE DISCOUNT
-// =====================================================
-async deleteDiscount(data: DeleteDiscountIdParam): Promise<void> {
-  const exists = await prisma.discounts.findUnique({
-    where: { id: data.id },
-  });
+  async deleteDiscount(data: DeleteDiscountIdParam): Promise<void> {
+    const exists = await prisma.discounts.findUnique({
+      where: { id: data.id },
+    });
 
-  if (!exists) {
-    throw new ApiError(404, "Discount not found");
+    if (!exists) {
+      throw new ApiError(404, "Discount not found");
+    }
+
+    await prisma.discounts.delete({
+      where: { id: data.id },
+    });
   }
-
-  await prisma.discounts.delete({
-    where: { id: data.id },
-  });
-}
 
   // =====================================================
   // TOGGLE DISCOUNT STATUS
   // =====================================================
-  async toggleDiscountStatus(id: number): Promise<IDiscount> {
+  async toggleDiscountStatus(id: number): Promise<DiscountResponse> {
     const discount = await prisma.discounts.findUnique({
       where: { id },
     });
@@ -185,7 +186,9 @@ async deleteDiscount(data: DeleteDiscountIdParam): Promise<void> {
   // =====================================================
   // VALIDATE DISCOUNT CODE
   // =====================================================
-  async validateDiscount(data: ValidateDiscountCodeInput): Promise<IDiscount> {
+  async validateDiscount(
+    data: ValidateDiscountCodeInput
+  ): Promise<DiscountResponse> {
     const now = new Date();
 
     const discount = await prisma.discounts.findFirst({
@@ -203,8 +206,6 @@ async deleteDiscount(data: DeleteDiscountIdParam): Promise<void> {
 
     return mapDiscount(discount as DiscountEntity);
   }
-
-  
 }
 
 export const discountService = new DiscountService();
