@@ -9,8 +9,8 @@ import { IDiscount } from "../types/interfaces.types";
 export type DiscountEntity = {
   id: number;
   code: string | null;
-  product_id: number | null;
-  vendor_id: number | null;
+  product_id: number;
+  vendor_id: number;
   discount_type: discount_type;
   value: any; // Prisma Decimal
   start_date: Date;
@@ -33,14 +33,14 @@ export const mapDiscount = (discount: DiscountEntity): IDiscount => {
     id: discount.id,
     code: discount.code ?? "",
 
-    product_id: discount.product_id ?? null,
-    vendor_id: discount.vendor_id ?? null,
+    product_id: discount.product_id,
+    vendor_id: discount.vendor_id,
 
     discount_type: discount.discount_type,
     value: discount.value,
 
     start_date: discount.start_date?.toISOString() ?? "",
-    end_date: discount.end_date?.toISOString() ?? null,
+    end_date: discount.end_date?.toISOString() ?? "",
     is_active: discount.is_active,
 
     created_at: discount.created_at?.toISOString() ? new Date(discount.created_at) : new Date(),
@@ -55,15 +55,15 @@ export const mapDiscountResponse = (discount: DiscountEntity): IDiscount => {
     id: discount.id,
     code: discount.code ?? "",
 
-    product_id: discount.product_id ?? null,
-    vendor_id: discount.vendor_id ?? null,
+    product_id: discount.product_id,
+    vendor_id: discount.vendor_id,
 
     discount_type: discount.discount_type,
     value: discount.value,
     is_active: discount.is_active,
 
-    start_date: discount.start_date?.toISOString() ?? "",
-    end_date: discount.end_date?.toISOString() ?? null,
+    start_date: discount.start_date?.toISOString() ,
+    end_date: discount.end_date?.toISOString(),
 
                           
 
