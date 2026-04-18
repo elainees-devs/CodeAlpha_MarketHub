@@ -5,15 +5,13 @@ import {
   UpdatePaymentInput,
 } from "../schemas";
 
-import {
-  PaymentEntity,
-  mapPayment,
-} from "../mappers";
-
+import { PaymentEntity, mapPayment } from "../mappers";
 import {
   payment_provider,
   payment_status,
 } from "@prisma/client";
+
+import { auditLogService } from "./auditLog.service";
 
 class PaymentService {
   // =====================================================
@@ -54,7 +52,9 @@ class PaymentService {
   // =====================================================
   async createPayment(
     order_id: number,
-    data: CreatePaymentInput & { user_id: number }
+    data: CreatePaymentInput & { user_id: number },
+    changed_by?: number,
+    session_id?: string
   ): Promise<PaymentResponse> {
     const payment = await prisma.payments.create({
       data: {
@@ -68,6 +68,16 @@ class PaymentService {
       },
     });
 
+    await auditLogService.createAuditLog({
+      table_name: "payments",
+      record_id: payment.id,
+      action: "CREATE",
+      changed_by,
+      session_id,
+      old_data: null,
+      new_data: payment,
+    });
+
     return mapPayment(payment as PaymentEntity);
   }
 
@@ -76,7 +86,9 @@ class PaymentService {
   // =====================================================
   async updatePayment(
     id: number,
-    data: UpdatePaymentInput
+    data: UpdatePaymentInput,
+    changed_by?: number,
+    session_id?: string
   ): Promise<PaymentResponse> {
     const exists = await prisma.payments.findUnique({
       where: { id },
@@ -89,14 +101,24 @@ class PaymentService {
     const updated = await prisma.payments.update({
       where: { id },
       data: {
-        ...(data.status && { payment_status: data.status as payment_status }),
+        ...(data.status && { status: data.status as payment_status }),
         ...(data.transaction_ref !== undefined && {
           transaction_ref: data.transaction_ref,
         }),
-        ...(data.attempt_count && {
+        ...(data.attempt_count !== undefined && {
           attempt_count: data.attempt_count,
         }),
       },
+    });
+
+    await auditLogService.createAuditLog({
+      table_name: "payments",
+      record_id: id,
+      action: "UPDATE",
+      changed_by,
+      session_id,
+      old_data: exists,
+      new_data: updated,
     });
 
     return mapPayment(updated as PaymentEntity);
@@ -105,7 +127,11 @@ class PaymentService {
   // =====================================================
   // DELETE PAYMENT
   // =====================================================
-  async deletePayment(id: number): Promise<void> {
+  async deletePayment(
+    id: number,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<void> {
     const exists = await prisma.payments.findUnique({
       where: { id },
     });
@@ -117,12 +143,26 @@ class PaymentService {
     await prisma.payments.delete({
       where: { id },
     });
+
+    await auditLogService.createAuditLog({
+      table_name: "payments",
+      record_id: id,
+      action: "DELETE",
+      changed_by,
+      session_id,
+      old_data: exists,
+      new_data: null,
+    });
   }
 
   // =====================================================
   // FAIL PAYMENT
   // =====================================================
-  async failPayment(id: number): Promise<PaymentResponse> {
+  async failPayment(
+    id: number,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<PaymentResponse> {
     const payment = await prisma.payments.findUnique({
       where: { id },
     });
@@ -136,6 +176,16 @@ class PaymentService {
       data: {
         status: payment_status.FAILED,
       },
+    });
+
+    await auditLogService.createAuditLog({
+      table_name: "payments",
+      record_id: id,
+      action: "UPDATE",
+      changed_by,
+      session_id,
+      old_data: payment,
+      new_data: updated,
     });
 
     return mapPayment(updated as PaymentEntity);
