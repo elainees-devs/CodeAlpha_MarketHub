@@ -30,21 +30,50 @@ class PaymentService {
   }
 
   // =====================================================
-  // GET USER PAYMENTS
+  // GET USER PAYMENTS (PAGINATED)
   // =====================================================
-  async getUserPayments(user_id: number): Promise<PaymentResponse[]> {
-    const payments = await prisma.payments.findMany({
-      where: {
-        orders: {
-          user_id,
-        },
-      },
-      orderBy: {
-        created_at: "desc",
-      },
-    });
+  async getUserPayments(
+    user_id: number,
+    page = 1,
+    limit = 10
+  ): Promise<{
+    data: PaymentResponse[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const skip = (page - 1) * limit;
 
-    return payments.map((p: PaymentEntity) => mapPayment(p));
+    const where = {
+      orders: {
+        user_id,
+      },
+    };
+
+    const [payments, total] = await Promise.all([
+      prisma.payments.findMany({
+        where,
+        orderBy: {
+          created_at: "desc",
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.payments.count({ where }),
+    ]);
+
+    return {
+      data: payments.map((p: PaymentEntity) => mapPayment(p)),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   // =====================================================
