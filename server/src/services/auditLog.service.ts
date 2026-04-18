@@ -4,6 +4,7 @@ import { AuditLogEntity, mapAuditLog } from "../mappers/auditLog.mapper";
 import {
   CreateAuditLogInput,
   UpdateAuditLogInput,
+  DeleteAuditLogInput,
 } from "../schemas";
 
 class AuditLogService {
@@ -126,9 +127,12 @@ class AuditLogService {
   }
 
   // =====================================================
-  // UPDATE AUDIT LOG (OPTIONAL ADMIN USE)
+  // UPDATE AUDIT LOG (ADMIN USE)
   // =====================================================
-  async updateAuditLog(id: number, data: UpdateAuditLogInput): Promise<IAuditLog> {
+  async updateAuditLog(
+    id: number,
+    data: UpdateAuditLogInput
+  ): Promise<IAuditLog> {
     const exists = await prisma.audit_logs.findUnique({
       where: { id },
     });
@@ -140,12 +144,12 @@ class AuditLogService {
     const log = await prisma.audit_logs.update({
       where: { id },
       data: {
-        table_name: data.table_name,
-        record_id: data.record_id,
-        action: data.action,
-        changed_by: data.changed_by ?? undefined,
-        old_data: data.old_data ?? undefined,
-        new_data: data.new_data ?? undefined,
+        ...(data.table_name !== undefined && { table_name: data.table_name }),
+        ...(data.record_id !== undefined && { record_id: data.record_id }),
+        ...(data.action !== undefined && { action: data.action }),
+        ...(data.changed_by !== undefined && { changed_by: data.changed_by }),
+        ...(data.old_data !== undefined && { old_data: data.old_data }),
+        ...(data.new_data !== undefined && { new_data: data.new_data }),
       },
     });
 
@@ -155,9 +159,9 @@ class AuditLogService {
   // =====================================================
   // DELETE AUDIT LOG
   // =====================================================
-  async deleteAuditLog(id: number): Promise<void> {
+  async deleteAuditLog(data: DeleteAuditLogInput): Promise<void> {
     const exists = await prisma.audit_logs.findUnique({
-      where: { id },
+      where: { id: data.id },
     });
 
     if (!exists) {
@@ -165,7 +169,7 @@ class AuditLogService {
     }
 
     await prisma.audit_logs.delete({
-      where: { id },
+      where: { id: data.id },
     });
   }
 }
