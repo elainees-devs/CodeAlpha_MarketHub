@@ -1,44 +1,29 @@
 import { Request, Response, NextFunction } from "express";
 import { discountService } from "../services";
 import {
-  CreateDiscountInput,
-  UpdateDiscountInput,
-} from "../schemas";
+  CreateDiscountSchema,
+  UpdateDiscountSchema,
+  DiscountIdParamSchema,
+  ValidateDiscountCodeSchema,
+  DiscountResponse,
+} from "../schemas/discount.schema";
 
 class DiscountController {
- // =====================================================
-// GET ALL DISCOUNTS
-// =====================================================
-async getAllDiscounts(req: Request, res: Response, next: NextFunction) {
-  try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
-
-    const result = await discountService.getAllDiscounts(page, limit);
-
-    return res.status(200).json({
-      success: true,
-      message: "Discounts retrieved successfully",
-      data: result.data,
-      meta: result.meta,
-    });
-  } catch (error) {
-    next(error);
-  }
-}
   // =====================================================
-  // GET DISCOUNT BY ID
+  // GET ALL DISCOUNTS (Paginated)
   // =====================================================
-  async getDiscountById(req: Request, res: Response, next: NextFunction) {
+  async getAllDiscounts(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 10;
 
-      const discount = await discountService.getDiscountById(id);
+      const result = await discountService.getAllDiscounts(page, limit);
 
       return res.status(200).json({
         success: true,
-        message: "Discount retrieved successfully",
-        data: discount,
+        message: "Discounts retrieved successfully",
+        data: result.data as DiscountResponse[],
+        meta: result.meta,
       });
     } catch (error) {
       next(error);
@@ -46,16 +31,18 @@ async getAllDiscounts(req: Request, res: Response, next: NextFunction) {
   }
 
   // =====================================================
-  // GET ACTIVE DISCOUNTS
+  // GET DISCOUNT BY ID
   // =====================================================
-  async getActiveDiscounts(req: Request, res: Response, next: NextFunction) {
+  async getDiscountById(req: Request, res: Response, next: NextFunction) {
     try {
-      const discounts = await discountService.getActiveDiscounts();
+      const { id } = DiscountIdParamSchema.parse(req.params);
+
+      const discount = await discountService.getDiscountById(id);
 
       return res.status(200).json({
         success: true,
-        message: "Active discounts retrieved successfully",
-        data: discounts,
+        message: "Discount retrieved successfully",
+        data: discount as DiscountResponse,
       });
     } catch (error) {
       next(error);
@@ -67,14 +54,14 @@ async getAllDiscounts(req: Request, res: Response, next: NextFunction) {
   // =====================================================
   async createDiscount(req: Request, res: Response, next: NextFunction) {
     try {
-      const data: CreateDiscountInput = req.body;
+      const validatedData = CreateDiscountSchema.parse(req.body);
 
-      const discount = await discountService.createDiscount(data);
+      const discount = await discountService.createDiscount(validatedData);
 
       return res.status(201).json({
         success: true,
         message: "Discount created successfully",
-        data: discount,
+        data: discount as DiscountResponse,
       });
     } catch (error) {
       next(error);
@@ -86,52 +73,15 @@ async getAllDiscounts(req: Request, res: Response, next: NextFunction) {
   // =====================================================
   async updateDiscount(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
-      const data: UpdateDiscountInput = req.body;
+      const { id } = DiscountIdParamSchema.parse(req.params);
+      const validatedData = UpdateDiscountSchema.parse(req.body);
 
-      const discount = await discountService.updateDiscount(id, data);
+      const discount = await discountService.updateDiscount(id, validatedData);
 
       return res.status(200).json({
         success: true,
         message: "Discount updated successfully",
-        data: discount,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // =====================================================
-  // DELETE DISCOUNT
-  // =====================================================
-  async deleteDiscount(req: Request, res: Response, next: NextFunction) {
-    try {
-      const id = Number(req.params.id);
-
-      await discountService.deleteDiscount(id);
-
-      return res.status(200).json({
-        success: true,
-        message: "Discount deleted successfully",
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // =====================================================
-  // TOGGLE DISCOUNT STATUS
-  // =====================================================
-  async toggleDiscountStatus(req: Request, res: Response, next: NextFunction) {
-    try {
-      const id = Number(req.params.id);
-
-      const discount = await discountService.toggleDiscountStatus(id);
-
-      return res.status(200).json({
-        success: true,
-        message: "Discount status updated successfully",
-        data: discount,
+        data: discount as DiscountResponse,
       });
     } catch (error) {
       next(error);
@@ -143,14 +93,32 @@ async getAllDiscounts(req: Request, res: Response, next: NextFunction) {
   // =====================================================
   async validateDiscount(req: Request, res: Response, next: NextFunction) {
     try {
-      const code = String(req.params.code);
+      const { code } = ValidateDiscountCodeSchema.parse(req.params);
 
-      const discount = await discountService.validateDiscount(code);
+      const discount = await discountService.validateDiscount({ code });
 
       return res.status(200).json({
         success: true,
-        message: "Discount validated successfully",
-        data: discount,
+        message: "Discount code is valid",
+        data: discount as DiscountResponse,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // =====================================================
+  // DELETE DISCOUNT
+  // =====================================================
+  async deleteDiscount(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = DiscountIdParamSchema.parse(req.params);
+
+      await discountService.deleteDiscount({ id });
+
+      return res.status(200).json({
+        success: true,
+        message: "Discount deleted successfully",
       });
     } catch (error) {
       next(error);
