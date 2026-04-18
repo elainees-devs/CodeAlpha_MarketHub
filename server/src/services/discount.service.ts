@@ -6,7 +6,9 @@ import { mapDiscount, DiscountEntity } from "../mappers";
 
 import {
   CreateDiscountInput,
+  DeleteDiscountIdParam,
   UpdateDiscountInput,
+  ValidateDiscountCodeInput,
 } from "../schemas";
 
 class DiscountService {
@@ -26,43 +28,43 @@ class DiscountService {
   }
 
   // =====================================================
-// GET ALL DISCOUNTS (PAGINATED)
-// =====================================================
-async getAllDiscounts(
-  page = 1,
-  limit = 10
-): Promise<{
-  data: IDiscount[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}> {
-  const skip = (page - 1) * limit;
-
-  const [discounts, total] = await Promise.all([
-    prisma.discounts.findMany({
-      orderBy: { created_at: "desc" },
-      skip,
-      take: limit,
-    }),
-    prisma.discounts.count(),
-  ]);
-
-  const totalPages = Math.ceil(total / limit);
-
-  return {
-    data: discounts.map((d) => mapDiscount(d as DiscountEntity)),
+  // GET ALL DISCOUNTS (PAGINATED)
+  // =====================================================
+  async getAllDiscounts(
+    page = 1,
+    limit = 10
+  ): Promise<{
+    data: IDiscount[];
     meta: {
-      total,
-      page,
-      limit,
-      totalPages,
-    },
-  };
-}
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const skip = (page - 1) * limit;
+
+    const [discounts, total] = await Promise.all([
+      prisma.discounts.findMany({
+        orderBy: { created_at: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.discounts.count(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: discounts.map((d) => mapDiscount(d as DiscountEntity)),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+      },
+    };
+  }
 
   // =====================================================
   // GET ACTIVE DISCOUNTS
@@ -117,21 +119,21 @@ async getAllDiscounts(
       throw new ApiError(404, "Discount not found");
     }
 
-    const cleanedData = Object.fromEntries(
-      Object.entries(data).filter(([_, value]) => value !== undefined)
-    );
-
     const updated = await prisma.discounts.update({
       where: { id },
       data: {
-        ...cleanedData,
-        // Prisma field mapping fix (if needed)
-        ...(cleanedData.discount_type && {
-          type: cleanedData.discount_type as discount_type,
+        ...(data.code !== undefined && { code: data.code }),
+        ...(data.product_id !== undefined && { product_id: data.product_id }),
+        ...(data.vendor_id !== undefined && { vendor_id: data.vendor_id }),
+        ...(data.discount_type !== undefined && {
+          discount_type: data.discount_type as discount_type,
         }),
-        ...(cleanedData.value && {
-          value: cleanedData.value as unknown as Decimal,
+        ...(data.value !== undefined && {
+          value: data.value as unknown as Decimal,
         }),
+        ...(data.start_date !== undefined && { start_date: data.start_date }),
+        ...(data.end_date !== undefined && { end_date: data.end_date }),
+        ...(data.is_active !== undefined && { is_active: data.is_active }),
       },
     });
 
@@ -141,19 +143,22 @@ async getAllDiscounts(
   // =====================================================
   // DELETE DISCOUNT
   // =====================================================
-  async deleteDiscount(id: number): Promise<void> {
-    const exists = await prisma.discounts.findUnique({
-      where: { id },
-    });
+  // =====================================================
+// DELETE DISCOUNT
+// =====================================================
+async deleteDiscount(data: DeleteDiscountIdParam): Promise<void> {
+  const exists = await prisma.discounts.findUnique({
+    where: { id: data.id },
+  });
 
-    if (!exists) {
-      throw new ApiError(404, "Discount not found");
-    }
-
-    await prisma.discounts.delete({
-      where: { id },
-    });
+  if (!exists) {
+    throw new ApiError(404, "Discount not found");
   }
+
+  await prisma.discounts.delete({
+    where: { id: data.id },
+  });
+}
 
   // =====================================================
   // TOGGLE DISCOUNT STATUS
@@ -180,12 +185,12 @@ async getAllDiscounts(
   // =====================================================
   // VALIDATE DISCOUNT CODE
   // =====================================================
-  async validateDiscount(code: string): Promise<IDiscount> {
+  async validateDiscount(data: ValidateDiscountCodeInput): Promise<IDiscount> {
     const now = new Date();
 
     const discount = await prisma.discounts.findFirst({
       where: {
-        code,
+        code: data.code,
         is_active: true,
         start_date: { lte: now },
         end_date: { gte: now },
@@ -198,6 +203,8 @@ async getAllDiscounts(
 
     return mapDiscount(discount as DiscountEntity);
   }
+
+  
 }
 
 export const discountService = new DiscountService();
