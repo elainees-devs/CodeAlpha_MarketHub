@@ -11,7 +11,7 @@ class OrderItemService {
     order_id: number;
     product_id: number;
     quantity: number;
-    price: number;
+    price: Decimal;
   }): Promise<IOrderItem> {
     const orderItem = await prisma.order_items.create({
       data: {
@@ -74,7 +74,7 @@ class OrderItemService {
     id: number,
     data: {
       quantity?: number;
-      price?: number;
+      price?: Decimal;
     }
   ): Promise<IOrderItem> {
     const orderItem = await prisma.order_items.update({
