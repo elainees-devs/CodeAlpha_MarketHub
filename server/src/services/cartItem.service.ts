@@ -7,21 +7,26 @@ import {
   RemoveCartItemInput,
   DeleteCartItemInput,
 } from "../schemas";
+import { auditLogService } from "./auditLog.service";
 
 class CartItemService {
   // =====================================================
   // ADD ITEM TO CART
   // =====================================================
-  async addItem(data: CreateCartItemInput): Promise<ICartItem> {
+  async addItem(
+    data: CreateCartItemInput,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<ICartItem> {
     const { cart_id, product_id, quantity } = data;
 
     const existingItem = await prisma.cart_items.findFirst({
-      where: {
-        cart_id,
-        product_id,
-      },
+      where: { cart_id, product_id },
     });
 
+    // ========================
+    // UPDATE EXISTING ITEM
+    // ========================
     if (existingItem) {
       const updated = await prisma.cart_items.update({
         where: { id: existingItem.id },
@@ -30,15 +35,38 @@ class CartItemService {
         },
       });
 
+      await auditLogService.createAuditLog({
+        table_name: "cart_items",
+        record_id: updated.id,
+        action: "UPDATE",
+        changed_by,
+        session_id,
+        old_data: existingItem,
+        new_data: updated,
+      });
+
       return mapCartItem(updated as CartItemEntity);
     }
 
+    // ========================
+    // CREATE NEW ITEM
+    // ========================
     const cartItem = await prisma.cart_items.create({
       data: {
         cart_id,
         product_id,
         quantity,
       },
+    });
+
+    await auditLogService.createAuditLog({
+      table_name: "cart_items",
+      record_id: cartItem.id,
+      action: "CREATE",
+      changed_by,
+      session_id,
+      old_data: null,
+      new_data: cartItem,
     });
 
     return mapCartItem(cartItem as CartItemEntity);
@@ -61,7 +89,9 @@ class CartItemService {
   // =====================================================
   async updateQuantity(
     item_id: number,
-    data: UpdateCartItemInput
+    data: UpdateCartItemInput,
+    changed_by?: number,
+    session_id?: string
   ): Promise<ICartItem> {
     const existing = await prisma.cart_items.findUnique({
       where: { id: item_id },
@@ -78,13 +108,27 @@ class CartItemService {
       },
     });
 
+    await auditLogService.createAuditLog({
+      table_name: "cart_items",
+      record_id: updated.id,
+      action: "UPDATE",
+      changed_by,
+      session_id,
+      old_data: existing,
+      new_data: updated,
+    });
+
     return mapCartItem(updated as CartItemEntity);
   }
 
   // =====================================================
   // REMOVE ITEM (cart_id + product_id)
   // =====================================================
-  async removeItem(data: RemoveCartItemInput): Promise<void> {
+  async removeItem(
+    data: RemoveCartItemInput,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<void> {
     const existing = await prisma.cart_items.findFirst({
       where: {
         cart_id: data.cart_id,
@@ -99,12 +143,26 @@ class CartItemService {
     await prisma.cart_items.delete({
       where: { id: existing.id },
     });
+
+    await auditLogService.createAuditLog({
+      table_name: "cart_items",
+      record_id: existing.id,
+      action: "DELETE",
+      changed_by,
+      session_id,
+      old_data: existing,
+      new_data: null,
+    });
   }
 
   // =====================================================
   // DELETE ITEM BY ID
   // =====================================================
-  async deleteItem(data: DeleteCartItemInput): Promise<void> {
+  async deleteItem(
+    data: DeleteCartItemInput,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<void> {
     const existing = await prisma.cart_items.findUnique({
       where: { id: data.id },
     });
@@ -116,15 +174,40 @@ class CartItemService {
     await prisma.cart_items.delete({
       where: { id: data.id },
     });
+
+    await auditLogService.createAuditLog({
+      table_name: "cart_items",
+      record_id: data.id,
+      action: "DELETE",
+      changed_by,
+      session_id,
+      old_data: existing,
+      new_data: null,
+    });
   }
 
   // =====================================================
   // CLEAR CART
   // =====================================================
   async clearCart(cart_id: number): Promise<void> {
+    const existingItems = await prisma.cart_items.findMany({
+      where: { cart_id },
+    });
+
     await prisma.cart_items.deleteMany({
       where: { cart_id },
     });
+
+    // log each deletion (optional but correct for audit)
+    for (const item of existingItems) {
+      await auditLogService.createAuditLog({
+        table_name: "cart_items",
+        record_id: item.id,
+        action: "DELETE",
+        old_data: item,
+        new_data: null,
+      });
+    }
   }
 
   // =====================================================
