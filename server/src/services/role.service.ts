@@ -1,24 +1,53 @@
 import { ApiError, prisma } from "../utils";
-import { IRole } from "../types/interfaces.types";
+import {
+  CreateRoleInput,
+  UpdateRoleInput,
+  DeleteRoleInput,
+  RoleResponse,
+} from "../schemas/role.schema";
+
 import { mapRole, RoleEntity } from "../mappers";
-import { CreateRoleInput, UpdateRoleInput } from "../schemas";
+import { auditLogService } from "./auditLog.service";
 
 class RoleService {
   // =====================================================
-  // GET ALL ROLES
+  // GET ALL ROLES (PAGINATED)
   // =====================================================
-  async getAllRoles(): Promise<IRole[]> {
-    const roles = await prisma.roles.findMany({
-      orderBy: { created_at: "desc" },
-    });
+  async getAllRoles(page = 1, limit = 10): Promise<{
+    data: RoleResponse[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const skip = (page - 1) * limit;
 
-    return roles.map((role) => mapRole(role as RoleEntity));
+    const [roles, total] = await Promise.all([
+      prisma.roles.findMany({
+        orderBy: { created_at: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.roles.count(),
+    ]);
+
+    return {
+      data: roles.map((r) => mapRole(r as RoleEntity)),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   // =====================================================
   // GET ROLE BY ID
   // =====================================================
-  async getRoleById(id: number): Promise<IRole | null> {
+  async getRoleById(id: number): Promise<RoleResponse | null> {
     const role = await prisma.roles.findUnique({
       where: { id },
     });
@@ -29,7 +58,7 @@ class RoleService {
   // =====================================================
   // GET ROLE BY NAME
   // =====================================================
-  async getRoleByName(name: string): Promise<IRole | null> {
+  async getRoleByName(name: string): Promise<RoleResponse | null> {
     const role = await prisma.roles.findUnique({
       where: { name },
     });
@@ -40,7 +69,11 @@ class RoleService {
   // =====================================================
   // CREATE ROLE
   // =====================================================
-  async createRole(data: CreateRoleInput): Promise<IRole> {
+  async createRole(
+    data: CreateRoleInput,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<RoleResponse> {
     const existingRole = await prisma.roles.findUnique({
       where: { name: data.name },
     });
@@ -56,13 +89,28 @@ class RoleService {
       },
     });
 
+    await auditLogService.createAuditLog({
+      table_name: "roles",
+      record_id: role.id,
+      action: "CREATE",
+      changed_by,
+      session_id,
+      old_data: null,
+      new_data: role,
+    });
+
     return mapRole(role as RoleEntity);
   }
 
   // =====================================================
   // UPDATE ROLE
   // =====================================================
-  async updateRole(id: number, data: UpdateRoleInput): Promise<IRole> {
+  async updateRole(
+    id: number,
+    data: UpdateRoleInput,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<RoleResponse> {
     const role = await prisma.roles.findUnique({
       where: { id },
     });
@@ -76,41 +124,66 @@ class RoleService {
       data,
     });
 
+    await auditLogService.createAuditLog({
+      table_name: "roles",
+      record_id: id,
+      action: "UPDATE",
+      changed_by,
+      session_id,
+      old_data: role,
+      new_data: updated,
+    });
+
     return mapRole(updated as RoleEntity);
   }
 
   // =====================================================
-  // DELETE ROLE
+  // DELETE ROLE (USES DELETE INPUT)
   // =====================================================
-  async deleteRole(id: number): Promise<void> {
+  async deleteRole(
+    data: DeleteRoleInput,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<void> {
     const role = await prisma.roles.findUnique({
-      where: { id },
+      where: { id: data.id },
     });
 
     if (!role) {
       throw new ApiError(404, "Role not found");
     }
 
-    // Protect system roles
     if (role.name === "admin" || role.name === "superadmin") {
       throw new ApiError(403, "System roles cannot be deleted");
     }
 
     await prisma.roles.delete({
-      where: { id },
+      where: { id: data.id },
+    });
+
+    await auditLogService.createAuditLog({
+      table_name: "roles",
+      record_id: data.id,
+      action: "DELETE",
+      changed_by,
+      session_id,
+      old_data: role,
+      new_data: null,
     });
   }
 
   // =====================================================
   // ASSIGN ROLE TO USER
   // =====================================================
-  async assignRoleToUser(user_id: number, role_id: number): Promise<void> {
+  async assignRoleToUser(
+    user_id: number,
+    role_id: number,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<void> {
     const existing = await prisma.user_roles.findUnique({
       where: {
-        user_id_role_id: {
-          user_id,
-          role_id,
-        },
+        user_id_role_id: { user_id, role_id },
       },
     });
 
@@ -119,23 +192,32 @@ class RoleService {
     }
 
     await prisma.user_roles.create({
-      data: {
-        user_id,
-        role_id,
-      },
+      data: { user_id, role_id },
+    });
+
+    await auditLogService.createAuditLog({
+      table_name: "user_roles",
+      record_id: role_id,
+      action: "CREATE",
+      changed_by,
+      session_id,
+      old_data: null,
+      new_data: { user_id, role_id },
     });
   }
 
   // =====================================================
   // REMOVE ROLE FROM USER
   // =====================================================
-  async removeRoleFromUser(user_id: number, role_id: number): Promise<void> {
+  async removeRoleFromUser(
+    user_id: number,
+    role_id: number,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<void> {
     const existing = await prisma.user_roles.findUnique({
       where: {
-        user_id_role_id: {
-          user_id,
-          role_id,
-        },
+        user_id_role_id: { user_id, role_id },
       },
     });
 
@@ -145,11 +227,18 @@ class RoleService {
 
     await prisma.user_roles.delete({
       where: {
-        user_id_role_id: {
-          user_id,
-          role_id,
-        },
+        user_id_role_id: { user_id, role_id },
       },
+    });
+
+    await auditLogService.createAuditLog({
+      table_name: "user_roles",
+      record_id: role_id,
+      action: "DELETE",
+      changed_by,
+      session_id,
+      old_data: existing,
+      new_data: null,
     });
   }
 }
