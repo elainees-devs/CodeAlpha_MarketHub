@@ -2,6 +2,7 @@ import { prisma, ApiError } from "../utils";
 import {
   CategoryResponse,
   CreateCategoryInput,
+  DeleteCategoryInput,
   UpdateCategoryInput,
 } from "../schemas/category.schema";
 
@@ -33,54 +34,61 @@ class CategoryService {
   }
 
   // =====================================================
-// GET ALL CATEGORIES (PAGINATED)
-// =====================================================
-async getAll(
-  page = 1,
-  limit = 10
-): Promise<{
-  data: CategoryResponse[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}> {
-  const skip = (page - 1) * limit;
-
-  const [categories, total] = await Promise.all([
-    prisma.categories.findMany({
-      where: { deleted_at: null },
-      orderBy: { created_at: "desc" },
-      skip,
-      take: limit,
-    }),
-    prisma.categories.count({
-      where: { deleted_at: null },
-    }),
-  ]);
-
-  const totalPages = Math.ceil(total / limit);
-
-  return {
-    data: categories.map((cat) =>
-      mapCategory(cat as CategoryEntity)
-    ),
+  // GET ALL CATEGORIES (PAGINATED + SUBCATEGORIES)
+  // =====================================================
+  async getAll(
+    page = 1,
+    limit = 10
+  ): Promise<{
+    data: CategoryResponse[];
     meta: {
-      total,
-      page,
-      limit,
-      totalPages,
-    },
-  };
-}
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const skip = (page - 1) * limit;
+
+    const [categories, total] = await Promise.all([
+      prisma.categories.findMany({
+        where: { deleted_at: null },
+        include: {
+          subcategories: true,
+        },
+        orderBy: { created_at: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.categories.count({
+        where: { deleted_at: null },
+      }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: categories.map((cat) =>
+        mapCategory(cat as CategoryEntity)
+      ),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+      },
+    };
+  }
+
   // =====================================================
   // GET CATEGORY BY ID
   // =====================================================
   async getById(id: number): Promise<CategoryResponse> {
     const category = await prisma.categories.findUnique({
       where: { id },
+      include: {
+        subcategories: true, 
+      },
     });
 
     if (!category || category.deleted_at) {
@@ -108,7 +116,7 @@ async getAll(
     const updated = await prisma.categories.update({
       where: { id },
       data: {
-        ...(data.name && { name: data.name }),
+        ...(data.name !== undefined && { name: data.name }),
       },
     });
 
@@ -116,24 +124,24 @@ async getAll(
   }
 
   // =====================================================
-  // SOFT DELETE CATEGORY
-  // =====================================================
-  async delete(id: number): Promise<void> {
-    const category = await prisma.categories.findUnique({
-      where: { id },
-    });
+// SOFT DELETE CATEGORY
+// =====================================================
+async delete(data: DeleteCategoryInput): Promise<void> {
+  const category = await prisma.categories.findUnique({
+    where: { id: data.id },
+  });
 
-    if (!category || category.deleted_at) {
-      throw new ApiError(404, "Category not found");
-    }
-
-    await prisma.categories.update({
-      where: { id },
-      data: {
-        deleted_at: new Date(),
-      },
-    });
+  if (!category || category.deleted_at) {
+    throw new ApiError(404, "Category not found");
   }
+
+  await prisma.categories.update({
+    where: { id: data.id },
+    data: {
+      deleted_at: new Date(),
+    },
+  });
+}
 }
 
 export const categoryService = new CategoryService();
