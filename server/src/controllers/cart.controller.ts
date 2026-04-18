@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { cartService } from "../services";
 import { ApiError } from "../utils";
-import { CreateCartInput } from "../schemas";
+import { CartResponseSchema } from "../schemas";
 
 class CartController {
   // =====================================================
@@ -16,11 +16,14 @@ class CartController {
       }
 
       const cart = await cartService.getCartByUserId(userId);
+      
+      // Validate and filter response data
+      const validatedData = cart ? CartResponseSchema.parse(cart) : null;
 
       return res.status(200).json({
         success: true,
         message: "Cart retrieved successfully",
-        data: cart,
+        data: validatedData,
       });
     } catch (error) {
       next(error);
@@ -33,17 +36,19 @@ class CartController {
   async createCart(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.user_id;
-      const data: CreateCartInput = req.body;
+      const data = req.body;
 
       const cart = await cartService.createCart({
         user_id: userId ?? data.user_id,
         session_id: data.session_id,
       });
 
+      const validatedData = CartResponseSchema.parse(cart);
+
       return res.status(201).json({
         success: true,
         message: "Cart created successfully",
-        data: cart,
+        data: validatedData,
       });
     } catch (error) {
       next(error);
@@ -63,6 +68,7 @@ class CartController {
 
       const totals = await cartService.calculateCartTotals(userId);
 
+      // Note: If totals has its own schema, parse it here
       return res.status(200).json({
         success: true,
         message: "Cart totals calculated successfully",
@@ -80,7 +86,7 @@ class CartController {
     try {
       const id = Number(req.params.id);
 
-      await cartService.deleteCart(id);
+      await cartService.deleteCart({ id });
 
       return res.status(200).json({
         success: true,
