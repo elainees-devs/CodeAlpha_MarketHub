@@ -41,8 +41,8 @@ export const mapPermission = (perm: PermissionEntity): IPermission => {
     id: perm.id,
     name: perm.name,
     description: perm.description,
-    created_at: perm.created_at?.toISOString() ?? "",
-    deleted_at: null,
+    created_at: perm.created_at ? new Date(perm.created_at) : new Date(),
+    
   };
 };
 
@@ -56,8 +56,7 @@ export const mapPermissionResponse = (
     id: perm.id,
     name: perm.name,
     description: perm.description,
-    created_at: perm.created_at?.toISOString() ?? "",
-    deleted_at: null,
+    created_at: perm.created_at ? new Date(perm.created_at) : new Date(),
   };
 };
 
