@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { CreateOrderItemSchema, OrderItemResponseSchema, OrderItemSchema } from "./orderItem.schema";
+import {
+  CreateOrderItemSchema,
+  OrderItemResponseSchema,
+  OrderItemSchema,
+} from "./orderItem.schema";
 import { ORDER_STATUS } from "../utils/constants";
 
 /**
@@ -39,7 +43,9 @@ export const CreateOrderSchema = z.object({
   customer_name: z.string().optional(),
   customer_email: z.string().email().optional(),
 
-  items: z.array(CreateOrderItemSchema).min(1, "Order must have at least one item"),
+  items: z
+    .array(CreateOrderItemSchema)
+    .min(1, "Order must have at least one item"),
 });
 
 /**
@@ -73,10 +79,10 @@ export const OrderResponseSchema = z.object({
   phone: z.string().nullable().optional(),
   customer_name: z.string().nullable().optional(),
   customer_email: z.string().nullable().optional(),
-
-  created_at: z.coerce.date(),
-
   order_items: z.array(OrderItemResponseSchema),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date().optional(),
+  deleted_at: z.coerce.date().nullable().optional(),
 });
 
 export type Order = z.infer<typeof OrderSchema>;
