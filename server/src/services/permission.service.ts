@@ -8,6 +8,7 @@ import {
   mapPermissionResponse,
   PermissionEntity,
 } from "../mappers";
+import { auditLogService } from "./auditLog.service";
 
 class PermissionService {
   // =====================================================
@@ -41,12 +42,26 @@ class PermissionService {
   // =====================================================
   // CREATE PERMISSION
   // =====================================================
-  async createPermission(data: CreatePermissionInput) {
+  async createPermission(
+    data: CreatePermissionInput,
+    changed_by?: number,
+    session_id?: string
+  ) {
     const permission = await prisma.permissions.create({
       data: {
         name: data.name,
         description: data.description ?? null,
       },
+    });
+
+    await auditLogService.createAuditLog({
+      table_name: "permissions",
+      record_id: permission.id,
+      action: "CREATE",
+      changed_by,
+      session_id,
+      old_data: null,
+      new_data: permission,
     });
 
     return mapPermission(permission as PermissionEntity);
@@ -55,7 +70,12 @@ class PermissionService {
   // =====================================================
   // UPDATE PERMISSION
   // =====================================================
-  async updatePermission(id: number, data: UpdatePermissionInput) {
+  async updatePermission(
+    id: number,
+    data: UpdatePermissionInput,
+    changed_by?: number,
+    session_id?: string
+  ) {
     const exists = await prisma.permissions.findUnique({
       where: { id },
     });
@@ -69,13 +89,27 @@ class PermissionService {
       data,
     });
 
+    await auditLogService.createAuditLog({
+      table_name: "permissions",
+      record_id: id,
+      action: "UPDATE",
+      changed_by,
+      session_id,
+      old_data: exists,
+      new_data: permission,
+    });
+
     return mapPermission(permission as PermissionEntity);
   }
 
   // =====================================================
   // DELETE PERMISSION
   // =====================================================
-  async deletePermission(id: number): Promise<void> {
+  async deletePermission(
+    id: number,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<void> {
     const exists = await prisma.permissions.findUnique({
       where: { id },
     });
@@ -86,6 +120,16 @@ class PermissionService {
 
     await prisma.permissions.delete({
       where: { id },
+    });
+
+    await auditLogService.createAuditLog({
+      table_name: "permissions",
+      record_id: id,
+      action: "DELETE",
+      changed_by,
+      session_id,
+      old_data: exists,
+      new_data: null,
     });
   }
 }
