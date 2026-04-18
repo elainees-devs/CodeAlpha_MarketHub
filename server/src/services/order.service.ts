@@ -9,6 +9,7 @@ import {
 } from "../schemas/order.schema";
 
 import { mapOrder, OrderEntity } from "../mappers/order.mapper";
+import { auditLogService } from "./auditLog.service";
 
 class OrderService {
   // =====================================================
@@ -68,17 +69,21 @@ class OrderService {
   }
 
   // =====================================================
-  // CREATE ORDER (BASE)
+  // CREATE BASE ORDER
   // =====================================================
-  async createBaseOrder(data: {
-    user_id?: number;
-    total: Decimal;
-    status?: order_status;
-    shipping_address?: string;
-    phone?: string;
-    customer_name?: string;
-    customer_email?: string;
-  }): Promise<OrderResponse> {
+  async createBaseOrder(
+    data: {
+      user_id?: number;
+      total: Decimal;
+      status?: order_status;
+      shipping_address?: string;
+      phone?: string;
+      customer_name?: string;
+      customer_email?: string;
+    },
+    changed_by?: number,
+    session_id?: string
+  ): Promise<OrderResponse> {
     const order = await prisma.orders.create({
       data: {
         user_id: data.user_id ?? null,
@@ -92,15 +97,27 @@ class OrderService {
       include: { order_items: true },
     });
 
+    await auditLogService.createAuditLog({
+      table_name: "orders",
+      record_id: order.id,
+      action: "CREATE",
+      changed_by,
+      session_id,
+      old_data: null,
+      new_data: order,
+    });
+
     return mapOrder(order as OrderEntity);
   }
 
   // =====================================================
-  // UPDATE ORDER (USES ZOD INPUT)
+  // UPDATE ORDER
   // =====================================================
   async updateOrder(
     id: number,
-    data: UpdateOrderInput
+    data: UpdateOrderInput,
+    changed_by?: number,
+    session_id?: string
   ): Promise<OrderResponse> {
     const exists = await prisma.orders.findUnique({ where: { id } });
 
@@ -126,13 +143,27 @@ class OrderService {
       include: { order_items: true },
     });
 
+    await auditLogService.createAuditLog({
+      table_name: "orders",
+      record_id: id,
+      action: "UPDATE",
+      changed_by,
+      session_id,
+      old_data: exists,
+      new_data: order,
+    });
+
     return mapOrder(order as OrderEntity);
   }
 
   // =====================================================
   // CANCEL ORDER
   // =====================================================
-  async cancelOrder(id: number): Promise<OrderResponse> {
+  async cancelOrder(
+    id: number,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<OrderResponse> {
     const order = await prisma.orders.findUnique({ where: { id } });
 
     if (!order) {
@@ -152,13 +183,27 @@ class OrderService {
       include: { order_items: true },
     });
 
+    await auditLogService.createAuditLog({
+      table_name: "orders",
+      record_id: id,
+      action: "UPDATE",
+      changed_by,
+      session_id,
+      old_data: order,
+      new_data: updated,
+    });
+
     return mapOrder(updated as OrderEntity);
   }
 
   // =====================================================
   // DELETE ORDER
   // =====================================================
-  async deleteOrder(id: number): Promise<void> {
+  async deleteOrder(
+    id: number,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<void> {
     const exists = await prisma.orders.findUnique({ where: { id } });
 
     if (!exists) {
@@ -166,10 +211,20 @@ class OrderService {
     }
 
     await prisma.orders.delete({ where: { id } });
+
+    await auditLogService.createAuditLog({
+      table_name: "orders",
+      record_id: id,
+      action: "DELETE",
+      changed_by,
+      session_id,
+      old_data: exists,
+      new_data: null,
+    });
   }
 
   // =====================================================
-  // PLACE ORDER (CHECKOUT USING CreateOrderInput)
+  // PLACE ORDER (CHECKOUT)
   // =====================================================
   async placeOrder(data: CreateOrderInput): Promise<OrderResponse> {
     return prisma.$transaction(async (tx) => {
@@ -201,9 +256,7 @@ class OrderService {
       for (const item of cart.cart_items) {
         const product = productMap.get(item.product_id);
 
-        if (!product) {
-          throw new ApiError(404, "Product not found");
-        }
+        if (!product) throw new ApiError(404, "Product not found");
 
         if (product.stock < item.quantity) {
           throw new ApiError(400, "Insufficient stock");
