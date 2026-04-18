@@ -1,30 +1,62 @@
 import { prisma, ApiError } from "../utils";
-import {IProduct} from "../types/interfaces.types";
+import { IProduct } from "../types/interfaces.types";
 import {
   mapProduct,
   mapProductResponse,
   ProductEntity,
 } from "../mappers";
+import { auditLogService } from "./auditLog.service";
+
 import { CreateProductImageSchema } from "../schemas/productImage.schema";
-import { CreateProductInput, ProductResponse, UpdateProductInput } from "../schemas";
+import {
+  CreateProductInput,
+  ProductResponse,
+  UpdateProductInput,
+} from "../schemas";
 
 class ProductService {
   // =====================================================
-  // GET ALL PRODUCTS
+  // GET ALL PRODUCTS (PAGINATED)
   // =====================================================
-  async getAllProducts(): Promise<ProductResponse[]> {
-    const products = await prisma.products.findMany({
-      include: {
-        product_images: {
-          orderBy: { position: "asc" },
-        },
-      },
-      orderBy: { created_at: "desc" },
-    });
+  async getAllProducts(
+    page = 1,
+    limit = 10
+  ): Promise<{
+    data: ProductResponse[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const skip = (page - 1) * limit;
 
-    return products.map((p: any) =>
-      mapProductResponse(p as ProductEntity)
-    );
+    const [products, total] = await Promise.all([
+      prisma.products.findMany({
+        include: {
+          product_images: {
+            orderBy: { position: "asc" },
+          },
+        },
+        orderBy: { created_at: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.products.count(),
+    ]);
+
+    return {
+      data: products.map((p: any) =>
+        mapProductResponse(p as ProductEntity)
+      ),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   // =====================================================
@@ -48,16 +80,17 @@ class ProductService {
   }
 
   // =====================================================
-  // CREATE PRODUCT (WITH IMAGES)
+  // CREATE PRODUCT (WITH IMAGES + AUDIT)
   // =====================================================
   async createProductWithImages(
     data: CreateProductInput,
-    files?: Express.Multer.File[]
+    files?: Express.Multer.File[],
+    changed_by?: number,
+    session_id?: string
   ): Promise<ProductResponse> {
     return prisma.$transaction(async (tx) => {
       const { images, ...productData } = data;
 
-      // 1. Create product
       const product = await tx.products.create({
         data: {
           name: productData.name,
@@ -68,7 +101,6 @@ class ProductService {
         },
       });
 
-      // 2. Build images from multer files
       const fileImages =
         files?.map((file, index) => ({
           product_id: product.id,
@@ -77,7 +109,6 @@ class ProductService {
           position: index,
         })) || [];
 
-      // 3. Build images from schema input (optional manual URLs)
       const schemaImages =
         images?.map((img, index) => ({
           product_id: product.id,
@@ -88,21 +119,18 @@ class ProductService {
 
       const allImages = [...fileImages, ...schemaImages];
 
-      // 4. Validate images via Zod
       CreateProductImageSchema.array().parse(allImages);
 
       if (allImages.length > 5) {
         throw new ApiError(400, "Maximum 5 images allowed");
       }
 
-      // 5. Insert images
       if (allImages.length > 0) {
         await tx.product_images.createMany({
           data: allImages,
         });
       }
 
-      // 6. Return full product
       const fullProduct = await tx.products.findUnique({
         where: { id: product.id },
         include: {
@@ -112,16 +140,28 @@ class ProductService {
         },
       });
 
+      await auditLogService.createAuditLog({
+        table_name: "products",
+        record_id: product.id,
+        action: "CREATE",
+        changed_by,
+        session_id,
+        old_data: null,
+        new_data: fullProduct,
+      });
+
       return mapProductResponse(fullProduct as any);
     });
   }
 
   // =====================================================
-  // UPDATE PRODUCT
+  // UPDATE PRODUCT + AUDIT
   // =====================================================
   async updateProduct(
     id: number,
-    data: UpdateProductInput
+    data: UpdateProductInput,
+    changed_by?: number,
+    session_id?: string
   ): Promise<IProduct> {
     const exists = await prisma.products.findUnique({
       where: { id },
@@ -136,13 +176,27 @@ class ProductService {
       data,
     });
 
+    await auditLogService.createAuditLog({
+      table_name: "products",
+      record_id: id,
+      action: "UPDATE",
+      changed_by,
+      session_id,
+      old_data: exists,
+      new_data: product,
+    });
+
     return mapProduct(product as ProductEntity);
   }
 
   // =====================================================
-  // DELETE PRODUCT (CASCADE SAFE)
+  // DELETE PRODUCT + AUDIT
   // =====================================================
-  async deleteProduct(id: number): Promise<void> {
+  async deleteProduct(
+    id: number,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<void> {
     const exists = await prisma.products.findUnique({
       where: { id },
     });
@@ -151,18 +205,29 @@ class ProductService {
       throw new ApiError(404, "Product not found");
     }
 
-    // If you have Prisma cascade set, this is enough
     await prisma.products.delete({
       where: { id },
+    });
+
+    await auditLogService.createAuditLog({
+      table_name: "products",
+      record_id: id,
+      action: "DELETE",
+      changed_by,
+      session_id,
+      old_data: exists,
+      new_data: null,
     });
   }
 
   // =====================================================
-  // ADD IMAGES TO EXISTING PRODUCT
+  // ADD IMAGES + AUDIT
   // =====================================================
   async addProductImages(
     productId: number,
-    files: Express.Multer.File[]
+    files: Express.Multer.File[],
+    changed_by?: number,
+    session_id?: string
   ) {
     const product = await prisma.products.findUnique({
       where: { id: productId },
@@ -181,25 +246,58 @@ class ProductService {
 
     CreateProductImageSchema.array().parse(images);
 
-    return prisma.product_images.createMany({
+    const result = await prisma.product_images.createMany({
       data: images,
     });
+
+    await auditLogService.createAuditLog({
+      table_name: "product_images",
+      record_id: productId,
+      action: "CREATE",
+      changed_by,
+      session_id,
+      old_data: null,
+      new_data: images,
+    });
+
+    return result;
   }
 
   // =====================================================
-  // SET MAIN IMAGE
+  // SET MAIN IMAGE + AUDIT
   // =====================================================
-  async setMainImage(productId: number, imageId: number) {
+  async setMainImage(
+    productId: number,
+    imageId: number,
+    changed_by?: number,
+    session_id?: string
+  ) {
     return prisma.$transaction(async (tx) => {
+      const oldImages = await tx.product_images.findMany({
+        where: { product_id: productId },
+      });
+
       await tx.product_images.updateMany({
         where: { product_id: productId },
         data: { is_main: false },
       });
 
-      return tx.product_images.update({
+      const updated = await tx.product_images.update({
         where: { id: imageId },
         data: { is_main: true },
       });
+
+      await auditLogService.createAuditLog({
+        table_name: "product_images",
+        record_id: imageId,
+        action: "UPDATE",
+        changed_by,
+        session_id,
+        old_data: oldImages,
+        new_data: updated,
+      });
+
+      return updated;
     });
   }
 }
