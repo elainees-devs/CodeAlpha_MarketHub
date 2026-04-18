@@ -4,6 +4,8 @@ import { mapCartItem, CartItemEntity } from "../mappers";
 import {
   CreateCartItemInput,
   UpdateCartItemInput,
+  RemoveCartItemInput,
+  DeleteCartItemInput,
 } from "../schemas";
 
 class CartItemService {
@@ -15,7 +17,7 @@ class CartItemService {
 
     const existingItem = await prisma.cart_items.findFirst({
       where: {
-        cart_id: cart_id ?? undefined,
+        cart_id,
         product_id,
       },
     });
@@ -33,7 +35,7 @@ class CartItemService {
 
     const cartItem = await prisma.cart_items.create({
       data: {
-        cart_id: cart_id ?? null,
+        cart_id,
         product_id,
         quantity,
       },
@@ -61,8 +63,6 @@ class CartItemService {
     item_id: number,
     data: UpdateCartItemInput
   ): Promise<ICartItem> {
-    const { quantity } = data;
-
     const existing = await prisma.cart_items.findUnique({
       where: { id: item_id },
     });
@@ -73,18 +73,23 @@ class CartItemService {
 
     const updated = await prisma.cart_items.update({
       where: { id: item_id },
-      data: { quantity },
+      data: {
+        quantity: data.quantity,
+      },
     });
 
     return mapCartItem(updated as CartItemEntity);
   }
 
   // =====================================================
-  // REMOVE ITEM FROM CART
+  // REMOVE ITEM (cart_id + product_id)
   // =====================================================
-  async removeItem(item_id: number): Promise<void> {
-    const existing = await prisma.cart_items.findUnique({
-      where: { id: item_id },
+  async removeItem(data: RemoveCartItemInput): Promise<void> {
+    const existing = await prisma.cart_items.findFirst({
+      where: {
+        cart_id: data.cart_id,
+        product_id: data.product_id,
+      },
     });
 
     if (!existing) {
@@ -92,12 +97,29 @@ class CartItemService {
     }
 
     await prisma.cart_items.delete({
-      where: { id: item_id },
+      where: { id: existing.id },
     });
   }
 
   // =====================================================
-  // CLEAR CART ITEMS BY CART ID
+  // DELETE ITEM BY ID
+  // =====================================================
+  async deleteItem(data: DeleteCartItemInput): Promise<void> {
+    const existing = await prisma.cart_items.findUnique({
+      where: { id: data.id },
+    });
+
+    if (!existing) {
+      throw new ApiError(404, "Cart item not found");
+    }
+
+    await prisma.cart_items.delete({
+      where: { id: data.id },
+    });
+  }
+
+  // =====================================================
+  // CLEAR CART
   // =====================================================
   async clearCart(cart_id: number): Promise<void> {
     await prisma.cart_items.deleteMany({
@@ -106,7 +128,7 @@ class CartItemService {
   }
 
   // =====================================================
-  // GET CART ITEM BY ID
+  // GET ITEM BY ID
   // =====================================================
   async getCartItemById(item_id: number): Promise<ICartItem | null> {
     const item = await prisma.cart_items.findUnique({
