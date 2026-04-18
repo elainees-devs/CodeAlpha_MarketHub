@@ -1,13 +1,25 @@
-import { IRole } from "../types/interfaces.types";
+import { Role } from "../utils/constants";
 
 /**
- * Prisma Role Entity type (raw DB shape)
+ * Prisma Role Entity (raw DB shape)
  */
 export type RoleEntity = {
   id: number;
-  name: string;
+  name: Role;
   description: string | null;
-  created_at: Date | null;
+  created_at: Date;
+  updated_at?: Date | null;
+
+  role_permissions?: {
+    id: number;
+    role_id: number;
+    permission_id: number;
+  }[];
+
+  user_roles?: {
+    user_id: number;
+    role_id: number;
+  }[];
 };
 
 /**
@@ -17,28 +29,28 @@ export type RoleEntity = {
  */
 
 /**
- * Internal Role mapper (DB → IRole)
+ * Internal mapper (DB → domain)
  */
-export const mapRole = (role: RoleEntity): IRole => {
+export const mapRole = (role: RoleEntity) => {
   return {
     id: role.id,
-    name: role.name,
+    name: role.name, 
     description: role.description,
-    created_at: role.created_at?.toISOString() ?? "",
-    deleted_at: null,
+    created_at: role.created_at,
+    user_roles: role.user_roles ?? [],
+    role_permissions: role.role_permissions ?? [],
   };
 };
 
 /**
- * Public Role Response (safe for API)
- * 
+ * Public API mapper (safe response)
+ * - You can remove relations if you want stricter API safety
  */
-export const mapRoleResponse = (role: RoleEntity): IRole => {
+export const mapRoleResponse = (role: RoleEntity) => {
   return {
     id: role.id,
     name: role.name,
     description: role.description,
-    created_at: role.created_at?.toISOString() ?? "",
-    deleted_at: null,
+    created_at: role.created_at,
   };
 };
