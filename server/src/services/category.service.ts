@@ -7,12 +7,17 @@ import {
 } from "../schemas/category.schema";
 
 import { mapCategory, CategoryEntity } from "../mappers";
+import { auditLogService } from "./auditLog.service";
 
 class CategoryService {
   // =====================================================
   // CREATE CATEGORY
   // =====================================================
-  async create(data: CreateCategoryInput): Promise<CategoryResponse> {
+  async create(
+    data: CreateCategoryInput,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<CategoryResponse> {
     const { name } = data;
 
     const existing = await prisma.categories.findFirst({
@@ -30,11 +35,21 @@ class CategoryService {
       data: { name },
     });
 
+    await auditLogService.createAuditLog({
+      table_name: "categories",
+      record_id: category.id,
+      action: "CREATE",
+      changed_by,
+      session_id,
+      old_data: null,
+      new_data: category,
+    });
+
     return mapCategory(category as CategoryEntity);
   }
 
   // =====================================================
-  // GET ALL CATEGORIES (PAGINATED + SUBCATEGORIES)
+  // GET ALL CATEGORIES
   // =====================================================
   async getAll(
     page = 1,
@@ -53,9 +68,7 @@ class CategoryService {
     const [categories, total] = await Promise.all([
       prisma.categories.findMany({
         where: { deleted_at: null },
-        include: {
-          subcategories: true,
-        },
+        include: { subcategories: true },
         orderBy: { created_at: "desc" },
         skip,
         take: limit,
@@ -68,15 +81,8 @@ class CategoryService {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      data: categories.map((cat) =>
-        mapCategory(cat as CategoryEntity)
-      ),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages,
-      },
+      data: categories.map((cat) => mapCategory(cat as CategoryEntity)),
+      meta: { total, page, limit, totalPages },
     };
   }
 
@@ -86,9 +92,7 @@ class CategoryService {
   async getById(id: number): Promise<CategoryResponse> {
     const category = await prisma.categories.findUnique({
       where: { id },
-      include: {
-        subcategories: true, 
-      },
+      include: { subcategories: true },
     });
 
     if (!category || category.deleted_at) {
@@ -103,7 +107,9 @@ class CategoryService {
   // =====================================================
   async update(
     id: number,
-    data: UpdateCategoryInput
+    data: UpdateCategoryInput,
+    changed_by?: number,
+    session_id?: string
   ): Promise<CategoryResponse> {
     const category = await prisma.categories.findUnique({
       where: { id },
@@ -120,28 +126,52 @@ class CategoryService {
       },
     });
 
+    await auditLogService.createAuditLog({
+      table_name: "categories",
+      record_id: updated.id,
+      action: "UPDATE",
+      changed_by,
+      session_id,
+      old_data: category,
+      new_data: updated,
+    });
+
     return mapCategory(updated as CategoryEntity);
   }
 
   // =====================================================
-// SOFT DELETE CATEGORY
-// =====================================================
-async delete(data: DeleteCategoryInput): Promise<void> {
-  const category = await prisma.categories.findUnique({
-    where: { id: data.id },
-  });
+  // SOFT DELETE CATEGORY
+  // =====================================================
+  async delete(
+    data: DeleteCategoryInput,
+    changed_by?: number,
+    session_id?: string
+  ): Promise<void> {
+    const category = await prisma.categories.findUnique({
+      where: { id: data.id },
+    });
 
-  if (!category || category.deleted_at) {
-    throw new ApiError(404, "Category not found");
+    if (!category || category.deleted_at) {
+      throw new ApiError(404, "Category not found");
+    }
+
+    const updated = await prisma.categories.update({
+      where: { id: data.id },
+      data: {
+        deleted_at: new Date(),
+      },
+    });
+
+    await auditLogService.createAuditLog({
+      table_name: "categories",
+      record_id: data.id,
+      action: "DELETE",
+      changed_by,
+      session_id,
+      old_data: category,
+      new_data: updated,
+    });
   }
-
-  await prisma.categories.update({
-    where: { id: data.id },
-    data: {
-      deleted_at: new Date(),
-    },
-  });
-}
 }
 
 export const categoryService = new CategoryService();
