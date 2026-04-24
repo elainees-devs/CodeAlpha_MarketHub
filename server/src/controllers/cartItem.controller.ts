@@ -1,32 +1,33 @@
 import { Request, Response, NextFunction } from "express";
 import { cartItemService } from "../services";
-import {
-  CreateCartItemInput,
-  UpdateCartItemInput,
-  CartItemResponseSchema, // Added schema import
-} from "../schemas";
+import { ApiError } from "../utils";
 
 class CartItemController {
   // =====================================================
   // ADD ITEM TO CART
   // =====================================================
-  async addItem(req: Request, res: Response, next: NextFunction) {
-    try {
-      const data: CreateCartItemInput = req.body;
-      const item = await cartItemService.addItem(data);
+ async addItem(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { cart_id, product_id, quantity } = req.body;
 
-      // Validate response data
-      const validatedData = CartItemResponseSchema.parse(item);
+    // =====================================================
+    // SERVICE HANDLES BUSINESS LOGIC + ERRORS
+    // =====================================================
+    const item = await cartItemService.addItem(
+      { cart_id, product_id, quantity },
+      (req as any).user?.id,
+      (req as any).session_id
+    );
 
-      return res.status(201).json({
-        success: true,
-        message: "Item added to cart",
-        data: validatedData,
-      });
-    } catch (error) {
-      next(error);
-    }
+    return res.status(201).json({
+      success: true,
+      message: "Item added to cart successfully",
+      data: item,
+    });
+  } catch (error) {
+    next(error); 
   }
+}
 
   // =====================================================
   // GET ALL ITEMS IN CART
@@ -34,20 +35,39 @@ class CartItemController {
   async getCartItems(req: Request, res: Response, next: NextFunction) {
     try {
       const cart_id = Number(req.params.cart_id);
-      const items = await cartItemService.getCartItems(cart_id);
 
-      // Map through items to ensure every item matches the Response Schema
-      const validatedData = items.map((item) =>
-        CartItemResponseSchema.parse(item),
-      );
+      const items = await cartItemService.getCartItems(cart_id);
 
       return res.status(200).json({
         success: true,
         message: "Cart items retrieved successfully",
-        data: validatedData,
+        data: items,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(500, error.message));
+    }
+  }
+
+  // =====================================================
+  // GET CART ITEM BY ID
+  // =====================================================
+  async getCartItemById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = Number(req.params.id);
+
+      const item = await cartItemService.getCartItemById(id);
+
+      if (!item) {
+        return next(new ApiError(404, "Cart item not found"));
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Cart item retrieved successfully",
+        data: item,
+      });
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 
@@ -56,42 +76,77 @@ class CartItemController {
   // =====================================================
   async updateQuantity(req: Request, res: Response, next: NextFunction) {
     try {
-      const item_id = Number(req.params.item_id);
-      const data: UpdateCartItemInput = req.body;
+      const id = Number(req.params.id);
+      const { quantity } = req.body;
 
-      const item = await cartItemService.updateQuantity(item_id, {
-        quantity: data.quantity,
-      });
+      if (!quantity) {
+        return next(new ApiError(400, "quantity is required"));
+      }
 
-      const validatedData = CartItemResponseSchema.parse(item);
+      const item = await cartItemService.updateQuantity(
+        id,
+        { quantity },
+        (req as any).user?.id,
+        (req as any).session_id
+      );
 
       return res.status(200).json({
         success: true,
-        message: "Quantity updated successfully",
-        data: validatedData,
+        message: "Cart item quantity updated successfully",
+        data: item,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 
   // =====================================================
-  // REMOVE ITEM FROM CART
+  // REMOVE ITEM (cart_id + product_id)
   // =====================================================
   async removeItem(req: Request, res: Response, next: NextFunction) {
     try {
-      // Pulling both IDs from req.params to satisfy RemoveCartItemInput
-      const cart_id = Number(req.params.cart_id);
-      const product_id = Number(req.params.product_id);
+      const { cart_id, product_id } = req.body;
 
-      await cartItemService.removeItem({ cart_id, product_id });
+      if (!cart_id || !product_id) {
+        return next(
+          new ApiError(400, "cart_id and product_id are required")
+        );
+      }
+
+      await cartItemService.removeItem(
+        { cart_id, product_id },
+        (req as any).user?.id,
+        (req as any).session_id
+      );
 
       return res.status(200).json({
         success: true,
-        message: "Item removed from cart",
+        message: "Item removed from cart successfully",
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
+    }
+  }
+
+  // =====================================================
+  // DELETE ITEM BY ID
+  // =====================================================
+  async deleteItem(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = Number(req.params.id);
+
+      await cartItemService.deleteItem(
+        { id },
+        (req as any).user?.id,
+        (req as any).session_id
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Cart item deleted successfully",
+      });
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 
@@ -108,35 +163,8 @@ class CartItemController {
         success: true,
         message: "Cart cleared successfully",
       });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // =====================================================
-  // GET SINGLE CART ITEM
-  // =====================================================
-  async getCartItemById(req: Request, res: Response, next: NextFunction) {
-    try {
-      const item_id = Number(req.params.item_id);
-      const item = await cartItemService.getCartItemById(item_id);
-
-      if (!item) {
-        return res.status(404).json({
-          success: false,
-          message: "Cart item not found",
-        });
-      }
-
-      const validatedData = CartItemResponseSchema.parse(item);
-
-      return res.status(200).json({
-        success: true,
-        message: "Cart item retrieved successfully",
-        data: validatedData,
-      });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(500, error.message));
     }
   }
 }
