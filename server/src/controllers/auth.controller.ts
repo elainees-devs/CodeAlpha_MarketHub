@@ -20,7 +20,9 @@ class AuthController {
       return res.status(201).json({
         success: true,
         message: "User registered successfully",
-        data: user,
+        data: {
+          user,
+        },
       });
     } catch (error) {
       next(error);
@@ -34,12 +36,15 @@ class AuthController {
     try {
       const data: LoginInput = req.body;
 
-      const user = await authService.login(data);
+      const result = await authService.login(data);
 
       return res.status(200).json({
         success: true,
         message: "Login successful",
-        data: user,
+        data: {
+          user: result.user,
+          token: result.token,
+        },
       });
     } catch (error) {
       next(error);
@@ -51,12 +56,23 @@ class AuthController {
   // =====================================================
   async getMe(req: Request, res: Response, next: NextFunction) {
     try {
-      const user = await authService.getMe(req.user!.id);
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
+
+      const user = await authService.getMe(userId);
 
       return res.status(200).json({
         success: true,
         message: "User retrieved successfully",
-        data: user,
+        data: {
+          user,
+        },
       });
     } catch (error) {
       next(error);
@@ -67,32 +83,36 @@ class AuthController {
   // CHANGE PASSWORD
   // =====================================================
   async changePassword(req: Request, res: Response, next: NextFunction) {
-  try {
-    const userId = req.user!.id;
-    const data: ChangePasswordInput = req.body;
+    try {
+      const userId = (req as any).user!.id;
+      const data: ChangePasswordInput = req.body;
 
-    await authService.changePassword(userId, data);
+      await authService.changePassword(userId, data);
 
-    return res.status(200).json({
-      success: true,
-      message: "Password updated successfully",
-    });
-  } catch (error) {
-    next(error);
+      return res.status(200).json({
+        success: true,
+        message: "Password updated successfully",
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-}
 
   // =====================================================
   // REFRESH TOKEN
   // =====================================================
   async refreshToken(req: Request, res: Response, next: NextFunction) {
     try {
-      const user = await authService.refreshToken(req.user!.id);
+      const userId = (req as any).user!.id;
+
+      const user = await authService.refreshToken(userId);
 
       return res.status(200).json({
         success: true,
         message: "Token refreshed successfully",
-        data: user,
+        data: {
+          user,
+        },
       });
     } catch (error) {
       next(error);
@@ -109,7 +129,9 @@ class AuthController {
       return res.status(200).json({
         success: true,
         message: "Token is valid",
-        token: data.token,
+        data: {
+          token: data.token,
+        },
       });
     } catch (error) {
       next(error);
