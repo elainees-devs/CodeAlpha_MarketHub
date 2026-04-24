@@ -1,32 +1,28 @@
 import { Request, Response, NextFunction } from "express";
 import { cartService } from "../services";
 import { ApiError } from "../utils";
-import { CartResponseSchema } from "../schemas";
 
 class CartController {
   // =====================================================
   // GET CART BY USER ID
   // =====================================================
-  async getCart(req: Request, res: Response, next: NextFunction) {
+  async getCartByUserId(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user?.user_id;
+      const user_id = Number(req.params.user_id);
 
-      if (!userId) {
-        throw new ApiError(401, "Unauthorized");
+      const cart = await cartService.getCartByUserId(user_id);
+
+      if (!cart) {
+        return next(new ApiError(404, "Cart not found"));
       }
-
-      const cart = await cartService.getCartByUserId(userId);
-      
-      // Validate and filter response data
-      const validatedData = cart ? CartResponseSchema.parse(cart) : null;
 
       return res.status(200).json({
         success: true,
         message: "Cart retrieved successfully",
-        data: validatedData,
+        data: cart,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 
@@ -35,47 +31,49 @@ class CartController {
   // =====================================================
   async createCart(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user?.user_id;
-      const data = req.body;
+      const { user_id, session_id } = req.body;
+
+      if (!user_id && !session_id) {
+        return next(
+          new ApiError(400, "Either user_id or session_id is required")
+        );
+      }
 
       const cart = await cartService.createCart({
-        user_id: userId ?? data.user_id,
-        session_id: data.session_id,
+        user_id,
+        session_id,
       });
-
-      const validatedData = CartResponseSchema.parse(cart);
 
       return res.status(201).json({
         success: true,
         message: "Cart created successfully",
-        data: validatedData,
+        data: cart,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(400, error.message));
     }
   }
 
   // =====================================================
-  // GET CART TOTALS
+  // UPDATE CART
   // =====================================================
-  async getCartTotals(req: Request, res: Response, next: NextFunction) {
+  async updateCart(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user?.user_id;
+      const id = Number(req.params.id);
+      const { user_id, session_id } = req.body;
 
-      if (!userId) {
-        throw new ApiError(401, "Unauthorized");
-      }
+      const cart = await cartService.updateCart(id, {
+        user_id,
+        session_id,
+      });
 
-      const totals = await cartService.calculateCartTotals(userId);
-
-      // Note: If totals has its own schema, parse it here
       return res.status(200).json({
         success: true,
-        message: "Cart totals calculated successfully",
-        data: totals,
+        message: "Cart updated successfully",
+        data: cart,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 
@@ -92,8 +90,27 @@ class CartController {
         success: true,
         message: "Cart deleted successfully",
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
+    }
+  }
+
+  // =====================================================
+  // CALCULATE CART TOTALS
+  // =====================================================
+  async calculateCartTotals(req: Request, res: Response, next: NextFunction) {
+    try {
+      const user_id = Number(req.params.user_id);
+
+      const totals = await cartService.calculateCartTotals(user_id);
+
+      return res.status(200).json({
+        success: true,
+        message: "Cart totals calculated successfully",
+        data: totals,
+      });
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 
@@ -102,20 +119,16 @@ class CartController {
   // =====================================================
   async clearCart(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user?.user_id;
+      const user_id = Number(req.params.user_id);
 
-      if (!userId) {
-        throw new ApiError(401, "Unauthorized");
-      }
-
-      await cartService.clearCart(userId);
+      await cartService.clearCart(user_id);
 
       return res.status(200).json({
         success: true,
         message: "Cart cleared successfully",
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(500, error.message));
     }
   }
 
@@ -124,21 +137,22 @@ class CartController {
   // =====================================================
   async mergeGuestCart(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user?.user_id;
-      const { session_id }: { session_id: string } = req.body;
+      const { session_id, user_id } = req.body;
 
-      if (!userId || !session_id) {
-        throw new ApiError(400, "User ID and session ID are required");
+      if (!session_id || !user_id) {
+        return next(
+          new ApiError(400, "session_id and user_id are required")
+        );
       }
 
-      await cartService.mergeGuestCart(session_id, userId);
+      await cartService.mergeGuestCart(session_id, user_id);
 
       return res.status(200).json({
         success: true,
         message: "Guest cart merged successfully",
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(500, error.message));
     }
   }
 }
