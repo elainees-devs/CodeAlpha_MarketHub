@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import { discount_type, OrderStatus, PaymentProvider, PaymentStatus, ShipmentStatus } from "../utils/constants";
+import { discount_type, OrderStatus, PaymentProvider, PaymentStatus, Role, ShipmentStatus } from "../utils/constants";
 
 export interface IUser {
   id: number;
@@ -84,7 +84,7 @@ export interface ICart {
   id: number;
   user_id: number | null;
   session_id: string | null;
-  created_at: Date;
+  created_at: Date | null;
   deleted_at: Date | null;
 }
 
@@ -100,10 +100,11 @@ export interface ICartItem {
 export interface IOrder {
   id: number;
   user_id: number | null;
-  total: Decimal;
+  total: number;
   status: OrderStatus;
   shipping_address: string | null;
   phone: string | null;
+  order_items: IOrderItem[];
   customer_name: string | null;
   customer_email: string | null;
   created_at: Date;
@@ -115,7 +116,7 @@ export interface IOrderItem {
   order_id: number | null;
   product_id: number | null;
   quantity: number;
-  price: Decimal;
+  price: number;
   created_at: Date;
   deleted_at: Date | null;
 }
@@ -124,7 +125,7 @@ export interface IPayment {
   id: number;
   order_id: number | null;
   provider: PaymentProvider;
-  amount: Decimal;
+  amount: number;
   status: PaymentStatus
   transaction_ref: string | null;
   attempt_count: number;
@@ -178,4 +179,11 @@ export interface IUserPermission {
 export interface IRolePermission {
   role_id: number;
   permission_id: number;
+}
+
+export interface IAuthUser {
+  id: number;
+  name: string;
+  email: string;
+  roles: IRole[] // Optional roles array for authorization checks
 }
