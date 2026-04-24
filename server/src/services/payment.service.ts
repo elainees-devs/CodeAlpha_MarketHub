@@ -6,10 +6,7 @@ import {
 } from "../schemas";
 
 import { PaymentEntity, mapPayment } from "../mappers";
-import {
-  payment_provider,
-  payment_status,
-} from "@prisma/client";
+import { payment_provider, payment_status } from "@prisma/client";
 
 import { auditLogService } from "./auditLog.service";
 
@@ -35,7 +32,7 @@ class PaymentService {
   async getUserPayments(
     user_id: number,
     page = 1,
-    limit = 10
+    limit = 10,
   ): Promise<{
     data: PaymentResponse[];
     meta: {
@@ -83,17 +80,18 @@ class PaymentService {
     order_id: number,
     data: CreatePaymentInput & { user_id: number },
     changed_by?: number,
-    session_id?: string
+    session_id?: string,
   ): Promise<PaymentResponse> {
     const payment = await prisma.payments.create({
       data: {
-        order_id,
-        user_id: data.user_id,
         amount: data.amount,
         provider: data.provider as payment_provider,
         status: payment_status.PENDING,
-        transaction_ref: data.transaction_ref ?? null,
         attempt_count: 1,
+
+        orders: {
+          connect: { id: order_id },
+        },
       },
     });
 
@@ -117,7 +115,7 @@ class PaymentService {
     id: number,
     data: UpdatePaymentInput,
     changed_by?: number,
-    session_id?: string
+    session_id?: string,
   ): Promise<PaymentResponse> {
     const exists = await prisma.payments.findUnique({
       where: { id },
@@ -154,12 +152,57 @@ class PaymentService {
   }
 
   // =====================================================
+  // MARK PAYMENT SUCCESS
+  // =====================================================
+  async markPaymentSuccess(
+  id: number,
+  transaction_ref?: string,
+  changed_by?: number,
+): Promise<PaymentResponse> {
+  const payment = await prisma.payments.findUnique({
+    where: { id },
+    include: { orders: true },
+  });
+
+  if (!payment) {
+    throw new ApiError(404, "Payment not found");
+  }
+
+  const updated = await prisma.payments.update({
+    where: { id },
+    data: {
+      status: payment_status.COMPLETED,
+      transaction_ref,
+    },
+  });
+
+  // update order
+  await prisma.orders.update({
+    where: { id: payment.order_id! },
+    data: {
+      status: "CONFIRMED",
+    },
+  });
+
+  await auditLogService.createAuditLog({
+    table_name: "payments",
+    record_id: id,
+    action: "UPDATE",
+    changed_by,
+    old_data: payment,
+    new_data: updated,
+  });
+
+  return mapPayment(updated as PaymentEntity);
+}
+
+  // =====================================================
   // DELETE PAYMENT
   // =====================================================
   async deletePayment(
     id: number,
     changed_by?: number,
-    session_id?: string
+    session_id?: string,
   ): Promise<void> {
     const exists = await prisma.payments.findUnique({
       where: { id },
@@ -190,7 +233,7 @@ class PaymentService {
   async failPayment(
     id: number,
     changed_by?: number,
-    session_id?: string
+    session_id?: string,
   ): Promise<PaymentResponse> {
     const payment = await prisma.payments.findUnique({
       where: { id },
