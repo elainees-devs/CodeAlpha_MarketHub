@@ -10,6 +10,12 @@ export * from "./rolePermission.schema";
 // permission
 export * from "./permission.schema";
 
+// user permission
+export * from "./userPermission.schema";
+
+// audit log
+export * from "./auditLog.schema";
+
 // auth
 export * from "./auth.schema";
 
@@ -21,6 +27,9 @@ export * from "./category.schema";
 
 // subcategory
 export * from "./subcategory.schema";
+
+// discount
+export * from "./discount.schema";
 
 // product
 export * from "./product.schema";
