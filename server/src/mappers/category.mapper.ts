@@ -9,7 +9,7 @@ export type CategoryEntity = {
   id: number;
   name: string;
   created_at: Date | null;
-  deleted_at: Date | null;
+  deleted_at: Date;
 };
 
 /**
@@ -25,8 +25,8 @@ export const mapCategory = (cat: CategoryEntity): ICategory => {
   return {
     id: cat.id,
     name: cat.name,
-    created_at: cat.created_at?.toISOString() ?? "",
-    deleted_at: cat.deleted_at?.toISOString() ?? null,
+    created_at:cat.created_at ? new Date(cat.created_at) : new Date(),
+    deleted_at: cat.deleted_at ? new Date(cat.deleted_at) : null,
   };
 };
 
@@ -37,7 +37,7 @@ export const mapCategoryResponse = (cat: CategoryEntity): ICategory => {
   return {
     id: cat.id,
     name: cat.name,
-    created_at: cat.created_at?.toISOString() ?? "",
-    deleted_at: cat.deleted_at?.toISOString() ?? null,
+    created_at: cat.created_at ? new Date(cat.created_at) : new Date(),
+    deleted_at: cat.deleted_at ? new Date(cat.deleted_at) : null,
   };
 };
