@@ -53,36 +53,62 @@ class PaymentController {
   // CREATE PAYMENT
   // =====================================================
   async createPayment(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { order_id, amount, provider, transaction_ref, user_id } =
-        req.body;
+  try {
+    const order_id = Number(req.params.order_id);
+    const { amount, provider, transaction_ref } = req.body;
 
-      if (!order_id || !amount || !provider || !user_id) {
-        return next(
-          new ApiError(
-            400,
-            "order_id, amount, provider, and user_id are required"
-          )
-        );
-      }
+    const user_id = (req as any).user?.id;
 
-      const payment = await paymentService.createPayment(
-        order_id,
-        { amount, provider, transaction_ref, user_id },
-        (req as any).user?.id,
-        (req as any).session_id
+    if (!order_id || !amount || !provider || !user_id) {
+      return next(
+        new ApiError(
+          400,
+          "order_id, amount, provider, and user_id are required"
+        )
       );
-
-      return res.status(201).json({
-        success: true,
-        message: "Payment created successfully",
-        data: payment,
-      });
-    } catch (error: any) {
-      return next(new ApiError(400, error.message));
     }
-  }
 
+    const payment = await paymentService.createPayment(
+      order_id,
+      { amount, provider, transaction_ref, user_id, order_id },
+      user_id,
+      (req as any).session_id
+    );
+
+    return res.status(201).json({
+      success: true,
+      data: payment,
+    });
+  } catch (error: any) {
+    return next(new ApiError(400, error.message));
+  }
+}
+
+// =====================================================
+// MARK PAYMENT SUCCESS
+// =====================================================
+async markPaymentSuccess(req: Request, res: Response, next: NextFunction) {
+  try {
+    const id = Number(req.params.id);
+    const { transaction_ref } = req.body;
+
+    const payment = await paymentService.markPaymentSuccess(
+      id,
+      transaction_ref,
+      (req as any).user?.id
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment marked as successful",
+      data: payment,
+    });
+  } catch (error: any) {
+    return next(
+      new ApiError(error.statusCode || 500, error.message)
+    );
+  }
+}
   // =====================================================
   // UPDATE PAYMENT
   // =====================================================
