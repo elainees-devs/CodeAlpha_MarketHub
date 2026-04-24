@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 /**
  * =========================
  * Product Image Schema
@@ -10,12 +11,12 @@ export const ProductImageSchema = z.object({
   id: z.number(),
   product_id: z.number().nullable(),
 
-  image_url: z.string().url(),
+  image_url: z.string(),
 
-  is_main: z.boolean().optional(),
-  position: z.number().int().min(0).optional(),
+  is_main: z.boolean().default(false),
+  position: z.number().int().min(0).default(0),
 
-  created_at: z.coerce.date().optional(),
+  created_at: z.coerce.date(),
   updated_at: z.coerce.date().optional(),
   deleted_at: z.coerce.date().nullable().optional(),
 });
@@ -26,7 +27,7 @@ export const ProductImageSchema = z.object({
 export const CreateProductImageSchema = z.object({
   product_id: z.number().optional(),
 
-  image_url: z.string().url(),
+  image_url: z.string(),
 
   is_main: z.boolean().optional(),
   position: z.number().int().min(0).optional(),
@@ -36,7 +37,7 @@ export const CreateProductImageSchema = z.object({
  * Update Product Image Schema
  */
 export const UpdateProductImageSchema = z.object({
-  image_url: z.string().url().optional(),
+  image_url: z.string().optional(),
   is_main: z.boolean().optional(),
   position: z.number().int().min(0).optional(),
 });
@@ -55,9 +56,9 @@ export const ProductImageResponseSchema = z.object({
   id: z.number(),
   product_id: z.number().nullable(),
 
-  image_url: z.string().url(),
-  is_main: z.boolean(),
+  image_url: z.string(),
 
+  is_main: z.boolean(),
   position: z.number(),
 
   created_at: z.coerce.date(),
