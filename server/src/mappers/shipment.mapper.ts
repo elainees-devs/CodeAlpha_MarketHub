@@ -1,4 +1,5 @@
-import { IShipment, ShipmentStatus } from "../types/interfaces.types";
+import { IShipment } from "../types/interfaces.types";
+import { ShipmentStatus } from "../utils/constants";
 
 /**
  * DB Entity (Prisma / raw DB type)
@@ -24,8 +25,8 @@ export const mapShipment = (shipment: ShipmentEntity): IShipment => {
     address: shipment.address,
     city: shipment.city ?? null,
     phone: shipment.phone ?? null,
-    status: shipment.status ?? "PENDING",
+    status: shipment.status,
     tracking_number: shipment.tracking_number ?? null,
-    created_at: shipment.created_at?.toISOString() ?? "",
+    created_at: shipment.created_at ? new Date(shipment.created_at) : new Date(),
   };
 };
