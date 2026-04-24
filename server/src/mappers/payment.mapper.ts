@@ -23,11 +23,15 @@ export const mapPayment = (payment: PaymentEntity): IPayment => {
   return {
     id: payment.id,
     order_id: payment.order_id,
-    amount: payment.amount,
+
+    amount: payment.amount.toNumber(),
+
     provider: payment.provider,
     status: payment.status,
+
     transaction_ref: payment.transaction_ref ?? null,
     attempt_count: payment.attempt_count ?? 0,
-    created_at: payment.created_at? new Date(payment.created_at) : new Date(),
+
+    created_at: payment.created_at ?? new Date(),
   };
 };
