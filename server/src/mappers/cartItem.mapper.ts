@@ -8,7 +8,8 @@ export type CartItemEntity = {
   cart_id: number;
   product_id: number;
   quantity: number;
-  created_at: Date | null;
+  created_at: Date;
+  deleted_at: Date | null;
 };
 
 /**
@@ -20,6 +21,7 @@ export const mapCartItem = (item: CartItemEntity): ICartItem => {
     cart_id: item.cart_id,
     product_id: item.product_id,
     quantity: item.quantity,
-    created_at: item.created_at?.toISOString() ?? "",
+    created_at: item.created_at ? new Date(item.created_at) : new Date(),
+    deleted_at: item.deleted_at ? new Date(item.deleted_at) : null,
   };
 };
