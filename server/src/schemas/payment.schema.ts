@@ -12,11 +12,11 @@ import { Decimal } from "decimal.js";
 // DB Payment Schema (internal)
 export const PaymentSchema = z.object({
   id: z.number(),
-  order_id: z.number().nullable(),
+  order_id: z.number(),
 
   provider: z.enum(PAYMENT_PROVIDERS),
 
-  amount: z.instanceof(Decimal), // Decimal -> number in app layer
+  amount: z.number().positive(), // Decimal -> number in app layer
 
   status: z.enum(PAYMENT_STATUS).optional(),
 
@@ -32,11 +32,11 @@ export const PaymentSchema = z.object({
  * Create Payment Schema
  */
 export const CreatePaymentSchema = z.object({
-  order_id: z.number().optional(),
+  order_id: z.number(),
 
   provider: z.enum(PAYMENT_PROVIDERS),
 
-  amount: z.instanceof(Decimal),
+  amount: z.number().positive(),
 
   transaction_ref: z.string().optional(),
 });
@@ -66,7 +66,7 @@ export const PaymentResponseSchema = z.object({
 
   provider: z.enum(PAYMENT_PROVIDERS),
 
-  amount: z.instanceof(Decimal),
+  amount: z.number().positive(),
   status: z.enum(PAYMENT_STATUS),
 
   transaction_ref: z.string().nullable().optional(),
