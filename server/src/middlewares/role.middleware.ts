@@ -10,11 +10,11 @@ export const requireRole = (allowedRoles: string[]) => {
       return next(new ApiError(401, "Unauthorized: No user found"));
     }
 
-    // if roles exist in DB later, extend this safely
-    const userRoles: string[] = (user as any).roles ?? [];
+    // Extract role names safely from IRole[]
+    const userRoles = (user.roles || []).map((role) => role.name);
 
-    const hasRole = userRoles.some((role: string) =>
-      allowedRoles.includes(role)
+    const hasRole = userRoles.some((roleName) =>
+      allowedRoles.includes(roleName)
     );
 
     if (!hasRole) {
