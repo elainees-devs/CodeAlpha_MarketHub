@@ -1,4 +1,4 @@
-import { prisma, ApiError } from "../utils";
+import { prisma, ApiError} from "../utils";
 import {
   CategoryResponse,
   CreateCategoryInput,
@@ -8,6 +8,7 @@ import {
 
 import { mapCategory, CategoryEntity } from "../mappers";
 import { auditLogService } from "./auditLog.service";
+import { Prisma } from "@prisma/client";
 
 class CategoryService {
   // =====================================================
@@ -49,11 +50,12 @@ class CategoryService {
   }
 
   // =====================================================
-  // GET ALL CATEGORIES
+  // GET ALL CATEGORIES (WITH SEARCH + PAGINATION)
   // =====================================================
   async getAll(
     page = 1,
-    limit = 10
+    limit = 10,
+    search?: string
   ): Promise<{
     data: CategoryResponse[];
     meta: {
@@ -65,17 +67,25 @@ class CategoryService {
   }> {
     const skip = (page - 1) * limit;
 
+    const where = {
+      deleted_at: null,
+      ...(search && {
+        name: {
+          contains: search.trim(),
+          mode: Prisma.QueryMode.insensitive,
+        },
+      }),
+    };
+
     const [categories, total] = await Promise.all([
       prisma.categories.findMany({
-        where: { deleted_at: null },
+        where,
         include: { subcategories: true },
         orderBy: { created_at: "desc" },
         skip,
         take: limit,
       }),
-      prisma.categories.count({
-        where: { deleted_at: null },
-      }),
+      prisma.categories.count({ where }),
     ]);
 
     const totalPages = Math.ceil(total / limit);
