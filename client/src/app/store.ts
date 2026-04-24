@@ -1,6 +1,4 @@
 import { configureStore } from "@reduxjs/toolkit";
-
-// Import reducers (you will create these in features/)
 import authReducer from "../features/auth/authSlice";
 import productReducer from "../features/products/productSlice";
 import cartReducer from "../features/cart/cartSlice";
