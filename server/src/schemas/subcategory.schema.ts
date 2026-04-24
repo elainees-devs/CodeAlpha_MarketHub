@@ -10,9 +10,8 @@ import { z } from "zod";
 export const SubcategorySchema = z.object({
   id: z.number(),
   name: z.string(),
-
   category_id: z.number().nullable().optional(),
-
+  // Keeping these optional as per your DB logic
   created_at: z.coerce.date().optional(),
   updated_at: z.coerce.date().optional(),
   deleted_at: z.coerce.date().nullable().optional(),
@@ -43,12 +42,15 @@ export const DeleteSubcategorySchema = z.object({
 
 /**
  * Subcategory Response Schema
+ * to match the source data coming from SubcategorySchema.
  */
 export const SubcategoryResponseSchema = z.object({
   id: z.number(),
   name: z.string(),
   category_id: z.number().nullable().optional(),
-  created_at: z.coerce.date(),
+  // By adding a default, we satisfy the requirement that this must be a Date
+  // even if the source 'subcategory' has it as optional/null.
+  created_at: z.coerce.date().default(() => new Date()),
 });
 
 export type Subcategory = z.infer<typeof SubcategorySchema>;
