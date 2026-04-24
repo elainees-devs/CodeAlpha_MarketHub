@@ -1,4 +1,4 @@
-import { prisma } from "../utils";
+import { ApiError, generateToken, prisma } from "../utils";
 import bcrypt from "bcryptjs";
 import {
   RegisterInput,
@@ -6,9 +6,21 @@ import {
   ChangePasswordInput,
   UserResponse,
 } from "../schemas";
-import { mapUserResponse, UserEntity } from "../mappers";
+import { mapAuthUserResponse, AuthEntity } from "../mappers";
 
 class AuthService {
+  /**
+   * Prisma include object to traverse the join table:
+   * users -> user_roles -> roles
+   */
+  private userInclude = {
+    user_roles: {
+      include: {
+        roles: true,
+      },
+    },
+  };
+
   // =====================================================
   // REGISTER USER
   // =====================================================
@@ -29,35 +41,53 @@ class AuthService {
         email: data.email,
         password_hash: hashed,
       },
+      include: this.userInclude, // Include nested roles after creation
     });
 
-    return mapUserResponse(user as UserEntity);
+    return mapAuthUserResponse(user as unknown as AuthEntity);
   }
 
   // =====================================================
-  // LOGIN USER
-  // =====================================================
-  async login(data: LoginInput): Promise<UserResponse> {
-    const user = await prisma.users.findUnique({
-      where: { email: data.email },
-    });
+// LOGIN USER
+// =====================================================
+async login(data: LoginInput) {
+  const user = await prisma.users.findUnique({
+  where: { email: data.email },
+  include: {
+    user_roles: {
+      include: {
+        roles: true,
+      },
+    },
+  },
+});
 
-    if (!user) {
-      throw new Error("Invalid credentials");
-    }
-
-    const isValid = await bcrypt.compare(
-      data.password,
-      user.password_hash
-    );
-
-    if (!isValid) {
-      throw new Error("Invalid credentials");
-    }
-
-    return mapUserResponse(user as UserEntity);
+  if (!user) {
+    throw new ApiError(401, "Invalid credentials");
   }
 
+  const isValid = await bcrypt.compare(
+    data.password,
+    user.password_hash
+  );
+
+  if (!isValid) {
+    throw new ApiError(401, "Invalid credentials");
+  }
+ const roles = user.user_roles.map((ur) => ur.roles.name);
+  const token = generateToken({
+    id: user.id,
+    email: user.email,
+    roles,
+  });
+
+  
+
+  return {
+    user: mapAuthUserResponse(user as unknown as AuthEntity),
+    token,
+  };
+}
   // =====================================================
   // CHANGE PASSWORD
   // =====================================================
@@ -73,10 +103,7 @@ class AuthService {
       throw new Error("User not found");
     }
 
-    const isMatch = await bcrypt.compare(
-      data.old_password,
-      user.password_hash
-    );
+    const isMatch = await bcrypt.compare(data.old_password, user.password_hash);
 
     if (!isMatch) {
       throw new Error("Old password is incorrect");
@@ -98,9 +125,10 @@ class AuthService {
   async getMe(user_id: number): Promise<UserResponse | null> {
     const user = await prisma.users.findUnique({
       where: { id: user_id },
+      include: this.userInclude,
     });
 
-    return user ? mapUserResponse(user as UserEntity) : null;
+    return user ? mapAuthUserResponse(user as unknown as AuthEntity) : null;
   }
 
   // =====================================================
@@ -109,13 +137,14 @@ class AuthService {
   async refreshToken(user_id: number): Promise<UserResponse> {
     const user = await prisma.users.findUnique({
       where: { id: user_id },
+      include: this.userInclude,
     });
 
     if (!user) {
       throw new Error("User not found");
     }
 
-    return mapUserResponse(user as UserEntity);
+    return mapAuthUserResponse(user as unknown as AuthEntity);
   }
 }
 
