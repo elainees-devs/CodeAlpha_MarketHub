@@ -19,7 +19,7 @@ export const mapCart = (cart: CartEntity): ICart => {
     id: cart.id,
     user_id: cart.user_id ?? null,
     session_id: cart.session_id ?? null,
-    created_at: cart.created_at?.toISOString() ?? "",
-    deleted_at: cart.deleted_at ? cart.deleted_at.toISOString() : null,
+    created_at: cart.created_at ? new Date(cart.created_at) : new Date(),
+    deleted_at: cart.deleted_at ? new Date(cart.deleted_at) : null,
   };
 };
