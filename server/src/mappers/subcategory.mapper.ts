@@ -27,8 +27,8 @@ export const mapSubcategory = (sub: SubcategoryEntity): ISubcategory => {
     id: sub.id,
     name: sub.name,
     category_id: sub.category_id,
-    created_at: sub.created_at?.toISOString() ?? "",
-    deleted_at: sub.deleted_at?.toISOString() ?? null,
+    created_at: sub.created_at ? new Date(sub.created_at) : new Date(),
+    deleted_at: sub.deleted_at ? new Date(sub.deleted_at) : null,
   };
 };
 
@@ -42,7 +42,7 @@ export const mapSubcategoryResponse = (
     id: sub.id,
     name: sub.name,
     category_id: sub.category_id,
-    created_at: sub.created_at?.toISOString() ?? "",
-    deleted_at: sub.deleted_at?.toISOString() ?? null,
+    created_at: sub.created_at ? new Date(sub.created_at) : new Date(),
+    deleted_at: sub.deleted_at ? new Date(sub.deleted_at) : null,
   };
 };
