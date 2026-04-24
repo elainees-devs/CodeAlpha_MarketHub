@@ -36,16 +36,12 @@ export const OrderSchema = z.object({
  * Create Order Schema
  */
 export const CreateOrderSchema = z.object({
-  user_id: z.number().optional(),
 
+  user_id: z.number().optional(),
   shipping_address: z.string().optional(),
   phone: z.string().optional(),
   customer_name: z.string().optional(),
-  customer_email: z.string().email().optional(),
-
-  items: z
-    .array(CreateOrderItemSchema)
-    .min(1, "Order must have at least one item"),
+  customer_email: z.string().optional(),
 });
 
 /**
