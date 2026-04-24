@@ -50,10 +50,21 @@ model users {
   user_permissions user_permissions[]
   vendors          vendors?
   audit_logs       audit_logs[]
+  refreshTokens    refresh_tokens[]
 
   @@index([email])
   @@index([name])
   @@index([deleted_at])
+}
+
+model refresh_tokens {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique
+  user_id    Int
+  user       users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  expires_at DateTime
+  created_at DateTime @default(now())
 }
 
 
@@ -191,7 +202,8 @@ model discounts {
   id         Int      @id @default(autoincrement())
   product_id Int
   vendor_id  Int
-  type       discount_type
+  code       String?
+  discount_type       discount_type
   value      Decimal  @db.Decimal(10,2)
   start_date DateTime
   end_date   DateTime
@@ -333,13 +345,17 @@ model audit_logs {
   table_name String
   record_id  Int
   action     String
+
   changed_by Int?
+  users users? @relation(fields: [changed_by], references: [id])
+
+  session_id String?
+
   changed_at DateTime @default(now())
   old_data   Json?
   new_data   Json?
 
-  users users? @relation(fields: [changed_by], references: [id])
-
   @@index([table_name, record_id])
   @@index([changed_by])
+  @@index([session_id])
 }
