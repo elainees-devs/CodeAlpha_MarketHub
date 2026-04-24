@@ -1,41 +1,46 @@
 import { Request, Response, NextFunction } from "express";
-import { prisma, verifyToken } from "../utils";
+import jwt from "jsonwebtoken";
+import { prisma } from "../utils";
+import { IRole } from "../types/interfaces.types";
+
+// Extend the Express Request type to include the user
+export interface AuthRequest extends Request {
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    roles: IRole[];
+  };
+}
 
 export const authenticateMiddleware = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader?.split(" ")[1];
+    const token = authHeader && authHeader.split(" ")[1];
 
     if (!token) {
-      return res
-        .status(401)
-        .json({ message: "Authentication token required" });
+      return res.status(401).json({ message: "Authentication token required" });
     }
 
-    // use centralized token utility
-    const decoded = verifyToken(token);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+      id: number;
+    };
 
-    if (!decoded) {
-      return res
-        .status(403)
-        .json({ message: "Invalid or expired token" });
-    }
-
-    const payload = decoded as { id: number };
-
-    // fetch user from DB
     const user = await prisma.users.findUnique({
-      where: { id: payload.id },
+      where: { id: decoded.id },
       select: {
         id: true,
-        user_id: true,
-        username: true,
+        name: true,
         email: true,
-        roles: true
+        user_roles: {
+          include: {
+            roles: true,
+          },
+        },
       },
     });
 
@@ -43,8 +48,13 @@ export const authenticateMiddleware = async (
       return res.status(401).json({ message: "User no longer exists" });
     }
 
-    // attach to request (typed via express.d.ts)
-    req.user = user;
+    // NORMALIZE USER
+   req.user = {
+  id: user.id,
+  name: user.name,
+  email: user.email,
+  roles: user.user_roles.map((ur) => ur.roles),
+};
 
     next();
   } catch (error) {
