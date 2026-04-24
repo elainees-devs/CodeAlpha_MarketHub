@@ -5,7 +5,7 @@ import Decimal from "decimal.js";
  * ROLES
  * =========================
  */
-export const ROLES = ["ADMIN", "CUSTOMER", "STAFF"] as const;
+export const ROLES = ["ADMIN", "CUSTOMER", "STAFF", "VENDOR"] as const;
 export type Role = (typeof ROLES)[number];
 
 /**
@@ -96,5 +96,6 @@ export type ShipmentStatus = (typeof SHIPMENT_STATUS)[number];
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ADMIN: ["CREATE_PRODUCT", "DELETE_PRODUCT", "VIEW_ORDERS"],
   STAFF: ["VIEW_ORDERS"],
+  VENDOR: ["CREATE_PRODUCT", "DELETE_PRODUCT"],
   CUSTOMER: [],
 };
