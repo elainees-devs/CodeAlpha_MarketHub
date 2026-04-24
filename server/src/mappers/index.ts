@@ -16,8 +16,15 @@ export {
 // Audit log related mappers
 export { AuditLogEntity, IAuditLog, mapAuditLog } from "./auditLog.mapper";
 
-//User-related mappers
-export { UserEntity, mapUser, mapUserResponse } from "./user.mapper";
+//User and Auth-related mappers
+export {
+  UserEntity,
+  mapUser,
+  mapUserResponse,
+  AuthEntity,
+  mapAuthUser,
+  mapAuthUserResponse,
+} from "./user.mapper";
 
 // Product and product image related mappers
 export {
@@ -31,7 +38,11 @@ export {
 export { DiscountEntity, mapDiscount } from "./discount.mapper";
 
 // Category and subcategory related mappers
-export { CategoryEntity, mapCategory, mapCategoryResponse } from "./category.mapper";
+export {
+  CategoryEntity,
+  mapCategory,
+  mapCategoryResponse,
+} from "./category.mapper";
 export {
   SubcategoryEntity,
   mapSubcategory,
