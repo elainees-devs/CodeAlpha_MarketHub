@@ -1,115 +1,123 @@
 import { Request, Response, NextFunction } from "express";
 import { categoryService } from "../services";
-import {
-  CreateCategoryInput,
-  UpdateCategoryInput,
-  CategoryResponseSchema,
-} from "../schemas";
+import { ApiError } from "../utils";
 
 class CategoryController {
   // =====================================================
   // CREATE CATEGORY
   // =====================================================
-  async create(req: Request, res: Response, next: NextFunction) {
+  async createCategory(req: Request, res: Response, next: NextFunction) {
     try {
-      const data: CreateCategoryInput = req.body;
-      const category = await categoryService.create(data);
+      const { name } = req.body;
 
-      const validatedData = CategoryResponseSchema.parse(category);
+      if (!name) {
+        return next(new ApiError(400, "Category name is required"));
+      }
+
+      const category = await categoryService.create(
+        { name },
+        (req as any).user?.id,
+        (req as any).session_id
+      );
 
       return res.status(201).json({
         success: true,
         message: "Category created successfully",
-        data: validatedData,
+        data: category,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(400, error.message));
     }
   }
 
   // =====================================================
-  // GET ALL CATEGORIES
+  // GET ALL CATEGORIES (PAGINATED)
   // =====================================================
-  async getAll(req: Request, res: Response, next: NextFunction) {
-    try {
-      const page = Number(req.query.page) || 1;
-      const limit = Number(req.query.limit) || 10;
+  async getAllCategories(req: Request, res: Response, next: NextFunction) {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const search = req.query.search as string | undefined;
 
-      const result = await categoryService.getAll(page, limit);
+    const result = await categoryService.getAll(page, limit, search);
 
-      // Validate every item in the data array
-      const validatedData = result.data.map((category) =>
-        CategoryResponseSchema.parse(category)
-      );
-
-      return res.status(200).json({
-        success: true,
-        message: "Categories retrieved successfully",
-        data: validatedData,
-        meta: result.meta,
-      });
-    } catch (error) {
-      next(error);
-    }
+    return res.status(200).json({
+      success: true,
+      message: "Categories retrieved successfully",
+      data: result.data,
+      meta: result.meta,
+    });
+  } catch (error: any) {
+    return next(new ApiError(500, error.message));
   }
-
+}
   // =====================================================
   // GET CATEGORY BY ID
   // =====================================================
-  async getById(req: Request, res: Response, next: NextFunction) {
+  async getCategoryById(req: Request, res: Response, next: NextFunction) {
     try {
       const id = Number(req.params.id);
-      const category = await categoryService.getById(id);
 
-      const validatedData = CategoryResponseSchema.parse(category);
+      const category = await categoryService.getById(id);
 
       return res.status(200).json({
         success: true,
         message: "Category retrieved successfully",
-        data: validatedData,
+        data: category,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 
   // =====================================================
   // UPDATE CATEGORY
   // =====================================================
-  async update(req: Request, res: Response, next: NextFunction) {
+  async updateCategory(req: Request, res: Response, next: NextFunction) {
     try {
       const id = Number(req.params.id);
-      const data: UpdateCategoryInput = req.body;
+      const { name } = req.body;
 
-      const category = await categoryService.update(id, data);
+      if (!name) {
+        return next(new ApiError(400, "Category name is required"));
+      }
 
-      const validatedData = CategoryResponseSchema.parse(category);
+      const category = await categoryService.update(
+        id,
+        { name },
+        (req as any).user?.id,
+        (req as any).session_id
+      );
 
       return res.status(200).json({
         success: true,
         message: "Category updated successfully",
-        data: validatedData,
+        data: category,
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 
   // =====================================================
   // DELETE CATEGORY (SOFT DELETE)
   // =====================================================
-  async delete(req: Request, res: Response, next: NextFunction) {
+  async deleteCategory(req: Request, res: Response, next: NextFunction) {
     try {
       const id = Number(req.params.id);
 
-      await categoryService.delete({ id });
+      await categoryService.delete(
+        { id },
+        (req as any).user?.id,
+        (req as any).session_id
+      );
 
       return res.status(200).json({
         success: true,
         message: "Category deleted successfully",
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      return next(new ApiError(404, error.message));
     }
   }
 }
