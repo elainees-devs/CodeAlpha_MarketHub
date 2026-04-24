@@ -14,63 +14,87 @@ class CartItemService {
   // ADD ITEM TO CART
   // =====================================================
   async addItem(
-    data: CreateCartItemInput,
-    changed_by?: number,
-    session_id?: string
-  ): Promise<ICartItem> {
-    const { cart_id, product_id, quantity } = data;
+  data: CreateCartItemInput,
+  changed_by?: number,
+  session_id?: string
+): Promise<ICartItem> {
+  const { cart_id, product_id, quantity } = data;
 
-    const existingItem = await prisma.cart_items.findFirst({
-      where: { cart_id, product_id },
-    });
+  // =====================================================
+  // GET PRODUCT STOCK
+  // =====================================================
+  const product = await prisma.products.findUnique({
+    where: { id: product_id },
+  });
 
-    // ========================
-    // UPDATE EXISTING ITEM
-    // ========================
-    if (existingItem) {
-      const updated = await prisma.cart_items.update({
-        where: { id: existingItem.id },
-        data: {
-          quantity: existingItem.quantity + quantity,
-        },
-      });
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
 
-      await auditLogService.createAuditLog({
-        table_name: "cart_items",
-        record_id: updated.id,
-        action: "UPDATE",
-        changed_by,
-        session_id,
-        old_data: existingItem,
-        new_data: updated,
-      });
+  const existingItem = await prisma.cart_items.findFirst({
+    where: { cart_id, product_id },
+  });
 
-      return mapCartItem(updated as CartItemEntity);
-    }
+  // =====================================================
+  // CALCULATE TOTAL QUANTITY (IMPORTANT FIX)
+  // =====================================================
+  const currentQty = existingItem?.quantity ?? 0;
+  const newTotal = currentQty + quantity;
 
-    // ========================
-    // CREATE NEW ITEM
-    // ========================
-    const cartItem = await prisma.cart_items.create({
+  // =====================================================
+  // STOCK VALIDATION (THIS FIXES YOUR TEST)
+  // =====================================================
+  if (newTotal > product.stock) {
+    throw new ApiError(400, "Stock limit exceeded");
+  }
+
+  // ========================
+  // UPDATE EXISTING ITEM
+  // ========================
+  if (existingItem) {
+    const updated = await prisma.cart_items.update({
+      where: { id: existingItem.id },
       data: {
-        cart_id,
-        product_id,
-        quantity,
+        quantity: newTotal,
       },
     });
 
     await auditLogService.createAuditLog({
       table_name: "cart_items",
-      record_id: cartItem.id,
-      action: "CREATE",
+      record_id: updated.id,
+      action: "UPDATE",
       changed_by,
       session_id,
-      old_data: null,
-      new_data: cartItem,
+      old_data: existingItem,
+      new_data: updated,
     });
 
-    return mapCartItem(cartItem as CartItemEntity);
+    return mapCartItem(updated as CartItemEntity);
   }
+
+  // ========================
+  // CREATE NEW ITEM
+  // ========================
+  const cartItem = await prisma.cart_items.create({
+    data: {
+      cart_id,
+      product_id,
+      quantity,
+    },
+  });
+
+  await auditLogService.createAuditLog({
+    table_name: "cart_items",
+    record_id: cartItem.id,
+    action: "CREATE",
+    changed_by,
+    session_id,
+    old_data: null,
+    new_data: cartItem,
+  });
+
+  return mapCartItem(cartItem as CartItemEntity);
+}
 
   // =====================================================
   // GET ALL ITEMS IN CART
