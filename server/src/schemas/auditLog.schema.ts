@@ -6,7 +6,7 @@ import { z } from "zod";
  * =========================
  */
 
-// DB Audit Log Schema (internal)
+// DB Audit Log Schema (internal use only)
 export const AuditLogSchema = z.object({
   id: z.number(),
 
@@ -14,7 +14,7 @@ export const AuditLogSchema = z.object({
   record_id: z.number(),
   action: z.string(),
 
-  changed_by: z.number().nullable().optional(),
+  changed_by: z.number().nullable(),
   changed_at: z.coerce.date(),
 
   old_data: z.any().optional(),
@@ -24,17 +24,26 @@ export const AuditLogSchema = z.object({
 /**
  * Create Audit Log Schema
  */
-export const CreateAuditLogSchema = z.object({
-  table_name: z.string().min(1, "Table name is required"),
-  record_id: z.number(),
-  action: z.string().min(1, "Action is required"),
+export const CreateAuditLogSchema = z
+  .object({
+    table_name: z.string().min(1, "Table name is required"),
+    record_id: z.number(),
+    action: z.string().min(1, "Action is required"),
 
-  changed_by: z.number().optional(),
+    changed_by: z.number().optional(),
+    session_id: z.string().optional(),
 
-  old_data: z.any().optional(),
-  new_data: z.any().optional(),
-});
-
+    old_data: z.any().optional(),
+    new_data: z.any().optional(),
+  })
+  .refine(
+    (data) => data.changed_by || data.session_id,
+    {
+      message:
+        "Audit log must have either changed_by (user_id) or session_id",
+      path: ["changed_by"],
+    }
+  );
 /**
  * Update Audit Log Schema
  * (usually restricted / admin use only)
