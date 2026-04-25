@@ -151,6 +151,7 @@ model categories {
   created_at    DateTime  @default(now())
   deleted_at    DateTime?
 
+  products      products[]
   subcategories subcategories[]
 
   @@index([name])
@@ -179,10 +180,12 @@ model products {
   description    String?
   price          Decimal  @db.Decimal(10,2)
   stock          Int      @default(0)
+  category_id    Int
   subcategory_id Int?
   created_at     DateTime @default(now())
   deleted_at     DateTime?
 
+  categories      categories @relation(fields: [category_id], references: [id], onDelete: Restrict)
   subcategories  subcategories? @relation(fields: [subcategory_id], references: [id], onDelete: Restrict)
 
   cart_items     cart_items[]
@@ -193,6 +196,7 @@ model products {
   @@index([name])
   @@index([price])
   @@index([stock])
+  @@index([category_id])
   @@index([subcategory_id])
   @@index([deleted_at])
 }
