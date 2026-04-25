@@ -4,31 +4,10 @@ import {
   type PayloadAction,
 } from "@reduxjs/toolkit";
 
-import {
-  authApi,
-  type AuthUser,
-  type LoginPayload,
-  type RegisterPayload,
-} from "../../services/authService";
+import type { ApiError, AuthState } from "./types";
+import { authApi, type AuthUser, type LoginPayload, type RegisterPayload } from "../../services/authService";
 
-// ==============================
-// STATE TYPE
-// ==============================
 
-type AuthState = {
-  user: AuthUser | null;
-  token: string | null;
-  loading: boolean;
-  error: string | null;
-};
-
-// ==============================
-// API ERROR TYPE (replaces any)
-// ==============================
-
-type ApiError = {
-  message: string;
-};
 
 // ==============================
 // INITIAL STATE
