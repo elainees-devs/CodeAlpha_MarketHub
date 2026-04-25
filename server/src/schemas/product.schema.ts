@@ -10,16 +10,11 @@ import { Decimal } from "decimal.js";
  */
 export const CreateProductSchema = z.object({
   name: z.string().min(2, "Product name is too short"),
-
   description: z.string().optional(),
-
   price: z.number().positive(),
-
   stock: z.number().int().min(0).optional(),
-  category_id: z.number(), // REQUIRED
-
+  category_id: z.number(),
   subcategory_id: z.number().optional(),
-
   images: z.array(CreateProductImageSchema).optional(),
 });
 
@@ -47,10 +42,8 @@ export const DeleteProductSchema = z.object({
  */
 export const ProductResponseSchema = z.object({
   id: z.number(),
-
   name: z.string(),
   description: z.string().nullable().optional(),
-
   price: z.instanceof(Decimal),
   stock: z.number(),
   category_id: z.number(),
