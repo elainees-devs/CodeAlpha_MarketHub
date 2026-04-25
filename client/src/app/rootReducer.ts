@@ -1,6 +1,4 @@
 import { combineReducers } from "@reduxjs/toolkit";
-
-// Import slices
 import authReducer from "../features/auth/authSlice";
 import productReducer from "../features/products/productSlice";
 // import cartReducer from "../features/cart/cartSlice";
