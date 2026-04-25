@@ -12,11 +12,24 @@ export type ProductEntity = {
   id: number;
   name: string;
   description: string | null;
-  price: Decimal; 
+  price: Decimal;
   stock: number;
+
+  category_id: number;
   subcategory_id: number | null;
-  created_at: Date | null;
+
+  created_at: Date;
   deleted_at: Date | null;
+
+  categories: {
+    id: number;
+    name: string;
+  };
+
+  subcategories: {
+    id: number;
+    name: string;
+  } | null;
 };
 
 export type ProductImageEntity = {
@@ -25,7 +38,7 @@ export type ProductImageEntity = {
   image_url: string;
   is_main: boolean | null;
   position: number | null;
-  created_at: Date | null;
+  created_at: Date;
   deleted_at: Date | null;
 };
 
@@ -42,15 +55,10 @@ export const mapProductImage = (img: ProductImageEntity): IProductImage => {
     image_url: img.image_url,
     is_main: img.is_main ?? false,
     position: img.position ?? 0,
-    created_at: img.created_at?.toISOString() ? new Date(img.created_at.toISOString()) : new Date(),
-    deleted_at: img.deleted_at?.toISOString() ? new Date(img.deleted_at.toISOString()) : null,
+    created_at: img.created_at,
+    deleted_at: img.deleted_at,
   };
 };
-
-/**
- * Optional alias (you can remove if unused)
- */
-export const mapProductImageResponse = mapProductImage;
 
 /**
  * ======================
@@ -63,11 +71,39 @@ export const mapProduct = (p: ProductEntity): IProduct => {
     id: p.id,
     name: p.name,
     description: p.description ?? null,
+
     price: p.price,
     stock: p.stock,
+
+    category_id: p.category_id,
     subcategory_id: p.subcategory_id,
-    created_at: p.created_at?.toISOString() ? new Date(p.created_at.toISOString()) : new Date(),
-    deleted_at: p.deleted_at?.toISOString() ? new Date(p.deleted_at.toISOString()) : null,
+
+    // ======================
+    // CATEGORY DATA (NEW)
+    // ======================
+    category: {
+      id: p.categories.id,
+      name: p.categories.name,
+      created_at: p.created_at,
+      deleted_at: p.deleted_at,
+    },
+
+    // ======================
+    // OPTIONAL SUBCATEGORY
+    // ======================
+    subcategory: p.subcategories
+      ? {
+          id: p.subcategories.id,
+          name: p.subcategories.name,
+          category_id: p.category_id,
+          created_at: p.created_at,
+          deleted_at: p.deleted_at,
+
+        }
+      : null,
+
+    created_at: p.created_at,
+    deleted_at: p.deleted_at,
   };
 };
 
@@ -82,6 +118,7 @@ export const mapProductResponse = (
 ): ProductResponse => {
   return {
     ...mapProduct(p),
+
     product_images: p.product_images?.map(mapProductImage) ?? [],
   };
 };
