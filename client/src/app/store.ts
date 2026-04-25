@@ -1,9 +1,8 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "../features/auth/authSlice";
 import productReducer from "../features/products/productSlice";
-import cartReducer from "../features/cart/cartSlice";
-import orderReducer from "../features/orders/orderSlice";
-import process from "process";
+// import cartReducer from "../features/cart/cartSlice";
+// import orderReducer from "../features/orders/orderSlice";
 
 // ==============================
 // REDUX STORE CONFIGURATION
@@ -13,20 +12,17 @@ export const store = configureStore({
   reducer: {
     auth: authReducer,
     products: productReducer,
-    cart: cartReducer,
-    orders: orderReducer,
+    // cart: cartReducer,
+    // orders: orderReducer,
   },
 
-  // optional but recommended for debugging
-  devTools: process.env.NODE_ENV !== "production",
+  // Enable Redux DevTools only in development
+  devTools: import.meta.env.MODE === "development",
 });
 
 // ==============================
 // TYPES
 // ==============================
 
-// Root state (used in useSelector)
 export type RootState = ReturnType<typeof store.getState>;
-
-// Dispatch type (used in useDispatch)
 export type AppDispatch = typeof store.dispatch;
