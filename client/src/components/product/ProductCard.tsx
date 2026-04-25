@@ -1,20 +1,47 @@
 import React from "react";
 import type { ApiProduct } from "../../features/products/types";
+import { useAppDispatch } from "../../app/hooks";
+import { addToCart } from "../../features/cart/cartSlice";
+
 
 // ==============================
 // PRODUCT CARD
 // ==============================
 export const ProductCard: React.FC<{ product: ApiProduct }> = ({ product }) => {
+  const dispatch = useAppDispatch();
+
   const mainImage =
     product.product_images?.find((img) => img.is_main)?.image_url ||
     product.product_images?.[0]?.image_url ||
     "https://via.placeholder.com/300";
 
+  const handleAddToCart = () => {
+    const isLoggedIn = Boolean(localStorage.getItem("token"));
+
+    // ==============================
+    // GUEST CART FLOW
+    // ==============================
+    if (!isLoggedIn) {
+      dispatch(
+        addToCart({
+          id: product.id,
+          name: product.name,
+          price: Number(product.price),
+          image: mainImage,
+        })
+      );
+      return;
+    }
+
+    // ==============================
+    // LOGGED IN USERS (future API)
+    // ==============================
+    console.log("Send to backend cart API:", product.id);
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition overflow-hidden group">
-      {/* ============================== */}
       {/* IMAGE */}
-      {/* ============================== */}
       <div className="h-48 overflow-hidden bg-gray-100">
         <img
           src={mainImage}
@@ -27,25 +54,18 @@ export const ProductCard: React.FC<{ product: ApiProduct }> = ({ product }) => {
         />
       </div>
 
-      {/* ============================== */}
       {/* CONTENT */}
-      {/* ============================== */}
       <div className="p-4 space-y-1">
         <h3 className="font-semibold text-gray-800 line-clamp-1">
           {product.name}
         </h3>
 
-        {/* ============================== */}
-        {/* CATEGORY DISPLAY */}
-        {/* ============================== */}
         <p className="text-sm text-gray-500">
           {product.category.name || "Uncategorized"}
           {product.subcategory?.name ? ` • ${product.subcategory.name}` : ""}
         </p>
 
-        {/* ============================== */}
-        {/* STOCK BADGES */}
-        {/* ============================== */}
+        {/* STOCK */}
         <div className="flex items-center gap-2 mt-1">
           {product.stock > 20 && (
             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
@@ -72,9 +92,7 @@ export const ProductCard: React.FC<{ product: ApiProduct }> = ({ product }) => {
           )}
         </div>
 
-        {/* ============================== */}
         {/* PRICE + ACTION */}
-        {/* ============================== */}
         <div className="flex items-center justify-between mt-3">
           <span className="font-bold text-gray-900">
             KSh {(Number(product.price) || 0).toLocaleString()}
@@ -82,7 +100,7 @@ export const ProductCard: React.FC<{ product: ApiProduct }> = ({ product }) => {
 
           <button
             className="bg-black text-white px-3 py-1 rounded-lg text-sm hover:bg-gray-800 transition"
-            onClick={() => console.log("Add to cart:", product.id)}
+            onClick={handleAddToCart}
           >
             Add
           </button>
