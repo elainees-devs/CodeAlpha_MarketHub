@@ -1,55 +1,54 @@
 import { prisma, ApiError } from "../utils";
-import { IProduct } from "../types/interfaces.types";
 import {
-  mapProduct,
   mapProductResponse,
-  ProductEntity,
-} from "../mappers";
-import { auditLogService } from "./auditLog.service";
 
+} from "../mappers";
+
+import { auditLogService } from "./auditLog.service";
 import { CreateProductImageSchema } from "../schemas/productImage.schema";
 import {
   CreateProductInput,
   ProductResponse,
   UpdateProductInput,
 } from "../schemas";
+import { Prisma } from "@prisma/client";
 
 class ProductService {
+  // ==============================
+  // REUSABLE INCLUDE (IMPORTANT)
+  // ==============================
+  private readonly PRODUCT_INCLUDE = {
+    product_images: {
+  orderBy: {
+    position: Prisma.SortOrder.asc,
+  },
+},
+    categories: true,
+    subcategories: true,
+  };
+
   // =====================================================
   // GET ALL PRODUCTS (PAGINATED)
   // =====================================================
-  async getAllProducts(
-    page = 1,
-    limit = 10
-  ): Promise<{
-    data: ProductResponse[];
-    meta: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    };
-  }> {
+  async getAllProducts(page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
     const [products, total] = await Promise.all([
       prisma.products.findMany({
-        include: {
-          product_images: {
-            orderBy: { position: "asc" },
-          },
-        },
+        where: { deleted_at: null },
+        include: this.PRODUCT_INCLUDE,
         orderBy: { created_at: "desc" },
         skip,
         take: limit,
       }),
-      prisma.products.count(),
+
+      prisma.products.count({
+        where: { deleted_at: null },
+      }),
     ]);
 
     return {
-      data: products.map((p: any) =>
-        mapProductResponse(p as ProductEntity)
-      ),
+      data: products.map(mapProductResponse),
       meta: {
         total,
         page,
@@ -65,11 +64,7 @@ class ProductService {
   async getProductById(id: number): Promise<ProductResponse> {
     const product = await prisma.products.findUnique({
       where: { id },
-      include: {
-        product_images: {
-          orderBy: { position: "asc" },
-        },
-      },
+      include: this.PRODUCT_INCLUDE,
     });
 
     if (!product) {
@@ -80,7 +75,7 @@ class ProductService {
   }
 
   // =====================================================
-  // CREATE PRODUCT (WITH IMAGES + AUDIT)
+  // CREATE PRODUCT
   // =====================================================
   async createProductWithImages(
     data: CreateProductInput,
@@ -91,16 +86,24 @@ class ProductService {
     return prisma.$transaction(async (tx) => {
       const { images, ...productData } = data;
 
+      // ==============================
+      // CREATE PRODUCT
+      // ==============================
       const product = await tx.products.create({
         data: {
           name: productData.name,
           description: productData.description,
           price: productData.price,
           stock: productData.stock ?? 0,
+
+          category_id: productData.category_id, // REQUIRED
           subcategory_id: productData.subcategory_id,
         },
       });
 
+      // ==============================
+      // IMAGES (FILES)
+      // ==============================
       const fileImages =
         files?.map((file, index) => ({
           product_id: product.id,
@@ -109,6 +112,9 @@ class ProductService {
           position: index,
         })) || [];
 
+      // ==============================
+      // IMAGES (FROM BODY)
+      // ==============================
       const schemaImages =
         images?.map((img, index) => ({
           product_id: product.id,
@@ -131,13 +137,12 @@ class ProductService {
         });
       }
 
+      // ==============================
+      // FETCH FULL PRODUCT
+      // ==============================
       const fullProduct = await tx.products.findUnique({
         where: { id: product.id },
-        include: {
-          product_images: {
-            orderBy: { position: "asc" },
-          },
-        },
+        include: this.PRODUCT_INCLUDE,
       });
 
       await auditLogService.createAuditLog({
@@ -155,14 +160,14 @@ class ProductService {
   }
 
   // =====================================================
-  // UPDATE PRODUCT + AUDIT
+  // UPDATE PRODUCT
   // =====================================================
   async updateProduct(
     id: number,
     data: UpdateProductInput,
     changed_by?: number,
     session_id?: string
-  ): Promise<IProduct> {
+  ): Promise<ProductResponse> {
     const exists = await prisma.products.findUnique({
       where: { id },
     });
@@ -171,9 +176,10 @@ class ProductService {
       throw new ApiError(404, "Product not found");
     }
 
-    const product = await prisma.products.update({
+    const updated = await prisma.products.update({
       where: { id },
       data,
+      include: this.PRODUCT_INCLUDE,
     });
 
     await auditLogService.createAuditLog({
@@ -183,14 +189,14 @@ class ProductService {
       changed_by,
       session_id,
       old_data: exists,
-      new_data: product,
+      new_data: updated,
     });
 
-    return mapProduct(product as ProductEntity);
+    return mapProductResponse(updated as any);
   }
 
   // =====================================================
-  // DELETE PRODUCT + AUDIT
+  // DELETE PRODUCT (SOFT DELETE - RECOMMENDED)
   // =====================================================
   async deleteProduct(
     id: number,
@@ -205,8 +211,11 @@ class ProductService {
       throw new ApiError(404, "Product not found");
     }
 
-    await prisma.products.delete({
+    await prisma.products.update({
       where: { id },
+      data: {
+        deleted_at: new Date(),
+      },
     });
 
     await auditLogService.createAuditLog({
@@ -221,7 +230,7 @@ class ProductService {
   }
 
   // =====================================================
-  // ADD IMAGES + AUDIT
+  // ADD IMAGES
   // =====================================================
   async addProductImages(
     productId: number,
@@ -264,7 +273,7 @@ class ProductService {
   }
 
   // =====================================================
-  // SET MAIN IMAGE + AUDIT
+  // SET MAIN IMAGE
   // =====================================================
   async setMainImage(
     productId: number,
