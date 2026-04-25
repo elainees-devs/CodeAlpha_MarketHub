@@ -60,9 +60,12 @@ export interface IProduct {
   id: number;
   name: string;
   description: string | null;
-  price: Decimal 
+  price: Decimal;
   stock: number;
+  category_id: number;
+  category: ICategory;
   subcategory_id: number | null;
+  subcategory: ISubcategory | null;
   created_at: Date;
   deleted_at: Date | null;
 }
