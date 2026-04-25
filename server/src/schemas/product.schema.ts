@@ -16,6 +16,7 @@ export const CreateProductSchema = z.object({
   price: z.number().positive(),
 
   stock: z.number().int().min(0).optional(),
+  category_id: z.number(), // REQUIRED
 
   subcategory_id: z.number().optional(),
 
@@ -30,6 +31,7 @@ export const UpdateProductSchema = z.object({
   description: z.string().optional(),
   price: z.number().positive().optional(),
   stock: z.number().int().min(0).optional(),
+  category_id: z.number().optional(),
   subcategory_id: z.number().optional(),
 });
 
@@ -51,7 +53,8 @@ export const ProductResponseSchema = z.object({
 
   price: z.instanceof(Decimal),
   stock: z.number(),
-
+  category_id: z.number(),
+  subcategory_id: z.number().nullable().optional(),
   product_images: z.array(ProductImageResponseSchema).optional(),
 
   created_at: z.coerce.date(),
