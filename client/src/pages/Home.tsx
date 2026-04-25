@@ -8,33 +8,32 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import type { Product } from "../features/products/types";
-import { mapProductsToUI } from "../utils/mappers/productMapper";
 import ProductFilters from "../components/product/ProductFilters";
+import { productApi } from "../services/productService";
+import type { ApiProduct } from "../features/products/types";
 
 const Home: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ApiProduct[]>([]);
   const [search, setSearch] = useState<string>("");
   const [sort, setSort] = useState<string>("newest");
   const [category, setCategory] = useState<string>("all");
   const [cartCount] = useState<number>(2);
 
-  // FETCH PRODUCTS
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const res = await fetch("http://localhost:5000/api/products");
-        const json = await res.json();
+  const fetchProducts = async () => {
+    try {
+      const res = await productApi.getAll();
 
-        const uiProducts = mapProductsToUI(json.data);
-        setProducts(uiProducts);
-      } catch (error) {
-        console.error("Failed to fetch products:", error);
-      }
-    };
+      console.log("Raw API Products:", res);
 
-    fetchProducts();
-  }, []);
+      setProducts(res);
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+    }
+  };
+
+  fetchProducts();
+}, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
