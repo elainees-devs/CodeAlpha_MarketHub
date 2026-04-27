@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { authApi } from "../../services/authService";
-
+import { useAppDispatch } from "../../app/hooks";
+import { loginUser } from "../../features/auth/authSlice";
 
 interface LoginFormData {
   email: string;
@@ -11,8 +11,8 @@ interface LoginFormData {
 const LoginForm: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useAppDispatch();
 
-  // where user came from (checkout protection flow)
   const from = location.state?.from?.pathname || "/";
 
   const [form, setForm] = useState<LoginFormData>({
@@ -23,6 +23,9 @@ const LoginForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // ==============================
+  // HANDLE INPUT CHANGE
+  // ==============================
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({
       ...form,
@@ -30,26 +33,32 @@ const LoginForm: React.FC = () => {
     });
   };
 
+  // ==============================
+  // SUBMIT LOGIN
+  // ==============================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      await authApi.login({
-        email: form.email,
-        password: form.password,
-      });
+      const result = await dispatch(
+        loginUser({
+          email: form.email,
+          password: form.password,
+        })
+      );
 
-      // success → return user to original page (checkout, etc.)
-      navigate(from, { replace: true });
-
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
+      if (loginUser.fulfilled.match(result)) {
+        navigate(from, {
+          replace: true,
+          state: { message: "Logged in successfully" },
+        });
       } else {
-        setError("Login failed. Please try again.");
+        setError(result.payload?.message || "Login failed");
       }
+    } catch {
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -65,14 +74,14 @@ const LoginForm: React.FC = () => {
           Login
         </h2>
 
-        {/* Error message */}
+        {/* ERROR */}
         {error && (
           <div className="mb-3 text-red-500 text-sm text-center">
             {error}
           </div>
         )}
 
-        {/* Email */}
+        {/* EMAIL */}
         <input
           type="email"
           name="email"
@@ -83,7 +92,7 @@ const LoginForm: React.FC = () => {
           required
         />
 
-        {/* Password */}
+        {/* PASSWORD */}
         <input
           type="password"
           name="password"
@@ -94,7 +103,7 @@ const LoginForm: React.FC = () => {
           required
         />
 
-        {/* Submit */}
+        {/* SUBMIT */}
         <button
           type="submit"
           disabled={loading}
