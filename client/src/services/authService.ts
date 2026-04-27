@@ -41,15 +41,15 @@ class AuthApi {
   async login(data: LoginPayload) {
     const res = await apiClient.post("/auth/login", data);
 
-    if (res.data?.accessToken) {
-      localStorage.setItem("access_token", res.data.accessToken);
+    // match backend structure
+    const { user, token } = res.data.data;
+
+    // store token correctly
+    if (token) {
+      localStorage.setItem("access_token", token);
     }
 
-    if (res.data?.refreshToken) {
-      localStorage.setItem("refresh_token", res.data.refreshToken);
-    }
-
-    return res.data;
+    return { user, token };
   }
 
   // GET CURRENT USER
