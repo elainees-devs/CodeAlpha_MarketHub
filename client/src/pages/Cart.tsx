@@ -6,6 +6,7 @@ import {
   clearCart,
 } from "../features/cart/cartSlice";
 import CheckoutButton from "../components/cart/CheckoutButton";
+import BackButton from "../components/shared/BackButton";
 
 const Cart = () => {
   const dispatch = useAppDispatch();
@@ -31,6 +32,7 @@ const Cart = () => {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
+      <BackButton label="Back" />
       <h2 className="text-2xl font-bold mb-4">
         Cart ({totalItems} items)
       </h2>
@@ -95,7 +97,7 @@ const Cart = () => {
 
             {/* Right */}
             <div className="font-semibold">
-              Ksh {item.price * item.quantity}
+              Ksh {(item.price * item.quantity).toLocaleString()}
             </div>
           </div>
         ))}
@@ -103,7 +105,7 @@ const Cart = () => {
 
       {/* Summary */}
       <div className="mt-6 border-t pt-4 flex justify-between items-center">
-        <h3 className="text-xl font-bold">Total: Ksh {total}</h3>
+        <h3 className="text-xl font-bold">Total: Ksh {total.toLocaleString()}.</h3>
 
         <div className="flex gap-3">
           <button
