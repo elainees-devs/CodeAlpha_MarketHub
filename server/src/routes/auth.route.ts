@@ -47,7 +47,7 @@ router.patch(
 );
 
 // REFRESH TOKEN
-router.post("/refresh", authenticateMiddleware, (req, res, next) =>
+router.post("/refresh", (req, res, next) =>
   authController.refreshToken(req, res, next),
 );
 
