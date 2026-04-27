@@ -30,6 +30,14 @@ enum payment_status {
   CANCELLED
 }
 
+enum shipment_status {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
 enum discount_type {
   PERCENTAGE
   FIXED
@@ -280,15 +288,15 @@ model orders {
 
 model order_items {
   id         Int     @id @default(autoincrement())
-  order_id   Int?
-  product_id Int?
+  order_id   Int
+  product_id Int
   quantity   Int
   price      Decimal @db.Decimal(10,2)
   created_at DateTime @default(now())
   deleted_at DateTime?
 
-  orders   orders?   @relation(fields: [order_id], references: [id], onDelete: Cascade)
-  products products? @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  orders   orders   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  products products @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
   @@index([order_id])
   @@index([product_id])
@@ -314,15 +322,15 @@ model payments {
 
 model shipments {
   id              Int     @id @default(autoincrement())
-  order_id        Int?
+  order_id        Int
   address         String
   city            String?
   phone           String?
-  status          String @default("PENDING")
+  status shipment_status @default(PENDING)
   tracking_number String? @unique
   created_at      DateTime @default(now())
 
-  orders orders? @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  orders orders @relation(fields: [order_id], references: [id], onDelete: Cascade)
 
   @@index([order_id])
   @@index([status])
