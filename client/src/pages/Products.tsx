@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import ProductFilters from "../components/product/ProductFilters";
 import { useProducts } from "../hooks/useProducts";
-import SearchBar from "../components/shared/Searchbar";
+import Header from "../components/shared/Header";
 
 const ProductsPage: React.FC = () => {
   const [search, setSearch] = useState("");
@@ -12,7 +12,9 @@ const ProductsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50"> 
-      <SearchBar value={search} onChange={setSearch} className="max-w-2xl mx-auto py-6" />
+        {/* HEADER (REUSABLE) */}
+      <Header search={search} onSearchChange={setSearch} />
+      <h1 className="text-3xl font-bold text-center mt-8">All Products</h1>
 
       {/* STATES */}
       {loading && (
