@@ -5,7 +5,7 @@ import {
   removeFromCart,
   clearCart,
 } from "../features/cart/cartSlice";
-import CheckoutButton from "../components/cart/ChackoutButton";
+import CheckoutButton from "../components/cart/CheckoutButton";
 
 const Cart = () => {
   const dispatch = useAppDispatch();
