@@ -4,6 +4,7 @@ import {
   type PayloadAction,
 } from "@reduxjs/toolkit";
 
+import type { AxiosError } from "axios";
 import type { ApiError, AuthState } from "./types";
 import {
   authApi,
@@ -12,16 +13,34 @@ import {
   type RegisterPayload,
 } from "../../services/authService";
 
-import { clearCart } from "../cart/cartSlice";
-import { store } from "../../app/store";
+// ==============================
+// SAFE LOCALSTORAGE PARSE
+// ==============================
+
+const safeParse = <T>(value: string | null): T | null => {
+  if (!value || value === "undefined") return null;
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+};
+
+// ==============================
+// RESTORE FROM LOCALSTORAGE
+// ==============================
+
+const savedToken = localStorage.getItem("access_token");
+const savedUser = safeParse<AuthUser>(localStorage.getItem("user"));
 
 // ==============================
 // INITIAL STATE
 // ==============================
 
 const initialState: AuthState = {
-  user: null,
-  token: localStorage.getItem("access_token"),
+  user: savedUser,
+  token: savedToken && savedToken !== "undefined" ? savedToken : null,
   loading: false,
   error: null,
 };
@@ -34,15 +53,20 @@ export const loginUser = createAsyncThunk<
   { user: AuthUser; accessToken: string },
   LoginPayload,
   { rejectValue: ApiError }
->("auth/loginUser", async (data, { rejectWithValue }) => {
+>("auth/login", async (data, { rejectWithValue }) => {
   try {
-    return await authApi.login(data);
-  } catch (err) {
-    const error = err as { response?: { data?: ApiError } };
+    const res = await authApi.login(data);
 
-    return rejectWithValue(
-      error.response?.data ?? { message: "Login failed" }
-    );
+    return {
+      user: res.user,
+      accessToken: res.token,
+    };
+  } catch (err) {
+    const axiosError = err as AxiosError<ApiError>;
+
+    return rejectWithValue({
+      message: axiosError.response?.data?.message || "Login failed",
+    });
   }
 });
 
@@ -54,20 +78,20 @@ export const registerUser = createAsyncThunk<
   unknown,
   RegisterPayload,
   { rejectValue: ApiError }
->("auth/registerUser", async (data, { rejectWithValue }) => {
+>("auth/register", async (data, { rejectWithValue }) => {
   try {
     return await authApi.register(data);
   } catch (err) {
-    const error = err as { response?: { data?: ApiError } };
+    const axiosError = err as AxiosError<ApiError>;
 
-    return rejectWithValue(
-      error.response?.data ?? { message: "Register failed" }
-    );
+    return rejectWithValue({
+      message: axiosError.response?.data?.message || "Register failed",
+    });
   }
 });
 
 // ==============================
-// GET CURRENT USER
+// FETCH CURRENT USER
 // ==============================
 
 export const fetchMe = createAsyncThunk<
@@ -78,11 +102,12 @@ export const fetchMe = createAsyncThunk<
   try {
     return await authApi.getMe();
   } catch (err) {
-    const error = err as { response?: { data?: ApiError } };
+    const axiosError = err as AxiosError<ApiError>;
 
-    return rejectWithValue(
-      error.response?.data ?? { message: "Failed to fetch user" }
-    );
+    return rejectWithValue({
+      message:
+        axiosError.response?.data?.message || "Failed to fetch user",
+    });
   }
 });
 
@@ -97,66 +122,44 @@ const authSlice = createSlice({
     logout(state) {
       state.user = null;
       state.token = null;
+      state.error = null;
 
       localStorage.removeItem("access_token");
-      authApi.logout();
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("user");
 
-      // optional: clear cart on logout (depends on your business logic)
-      store.dispatch(clearCart());
+      authApi.logout();
+    },
+
+    setUser(state, action: PayloadAction<AuthUser>) {
+      state.user = action.payload;
     },
   },
 
   extraReducers: (builder) => {
-    // ==============================
-    // LOGIN
-    // ==============================
-
+    // ================= LOGIN =================
     builder.addCase(loginUser.pending, (state) => {
       state.loading = true;
       state.error = null;
     });
 
-    builder.addCase(
-      loginUser.fulfilled,
-      (
-        state,
-        action: PayloadAction<{ user: AuthUser; accessToken: string }>
-      ) => {
-        state.loading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.accessToken;
+    builder.addCase(loginUser.fulfilled, (state, action) => {
+      state.loading = false;
+      state.user = action.payload.user;
+      state.token = action.payload.accessToken;
 
-        // persist token
-        localStorage.setItem("access_token", action.payload.accessToken);
-
-        // ==============================
-        // MERGE GUEST CART
-        // ==============================
-        const guestCart = store.getState().cart.items;
-
-        if (guestCart.length > 0) {
-          console.log("Merging guest cart to backend:", guestCart);
-
-          // TODO: replace with API call later
-          // await cartApi.merge(guestCart)
-
-          store.dispatch(clearCart());
-        }
-      }
-    );
+      localStorage.setItem("access_token", action.payload.accessToken);
+      localStorage.setItem("user", JSON.stringify(action.payload.user));
+    });
 
     builder.addCase(loginUser.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload?.message ?? "Login failed";
     });
 
-    // ==============================
-    // REGISTER
-    // ==============================
-
+    // ================= REGISTER =================
     builder.addCase(registerUser.pending, (state) => {
       state.loading = true;
-      state.error = null;
     });
 
     builder.addCase(registerUser.fulfilled, (state) => {
@@ -168,33 +171,22 @@ const authSlice = createSlice({
       state.error = action.payload?.message ?? "Register failed";
     });
 
-    // ==============================
-    // FETCH USER
-    // ==============================
-
-    builder.addCase(fetchMe.pending, (state) => {
-      state.loading = true;
+    // ================= FETCH USER =================
+    builder.addCase(fetchMe.fulfilled, (state, action) => {
+      state.user = action.payload;
+      localStorage.setItem("user", JSON.stringify(action.payload));
     });
 
-    builder.addCase(
-      fetchMe.fulfilled,
-      (state, action: PayloadAction<AuthUser>) => {
-        state.loading = false;
-        state.user = action.payload;
-      }
-    );
-
     builder.addCase(fetchMe.rejected, (state, action) => {
-      state.loading = false;
-      state.error =
-        action.payload?.message ?? "Failed to fetch user";
+      state.error = action.payload?.message ?? "Session expired";
+      state.user = null;
+      state.token = null;
+
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user");
     });
   },
 });
 
-// ==============================
-// EXPORTS
-// ==============================
-
-export const { logout } = authSlice.actions;
+export const { logout, setUser } = authSlice.actions;
 export default authSlice.reducer;
