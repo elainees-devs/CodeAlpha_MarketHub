@@ -11,9 +11,8 @@ import { Link } from "react-router-dom";
 import ProductFilters from "../components/product/ProductFilters";
 import { productApi } from "../services/productService";
 import type { ApiProduct } from "../features/products/types";
-import { useAppSelector } from "../app/hooks";
-
-
+import { useAppDispatch, useAppSelector } from "../app/hooks";
+import { logout } from "../features/auth/authSlice";
 
 const Home: React.FC = () => {
   const [products, setProducts] = useState<ApiProduct[]>([]);
@@ -21,15 +20,14 @@ const Home: React.FC = () => {
   const [sort, setSort] = useState<string>("newest");
   const [category, setCategory] = useState<string>("all");
 
+  const dispatch = useAppDispatch();
+
   // ==============================
-  // REDUX CART STATE (REAL)
+  // REDUX STATE
   // ==============================
   const cartItems = useAppSelector((state) => state.cart.items);
-
-  const cartCount = cartItems.reduce(
-    (sum, item) => sum + item.quantity,
-    0
-  );
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const user = useAppSelector((state) => state.auth.user);
 
   // ==============================
   // FETCH PRODUCTS
@@ -38,7 +36,6 @@ const Home: React.FC = () => {
     const fetchProducts = async () => {
       try {
         const res = await productApi.getAll();
-        console.log("Raw API Products:", res);
         setProducts(res);
       } catch (error) {
         console.error("Failed to fetch products:", error);
@@ -48,14 +45,17 @@ const Home: React.FC = () => {
     fetchProducts();
   }, []);
 
+  // ==============================
+  // LOGOUT (NO REDIRECT)
+  // ==============================
+  const handleLogout = () => {
+    dispatch(logout());
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-
-      {/* ============================== */}
       {/* HEADER */}
-      {/* ============================== */}
       <header className="bg-white shadow-sm px-4 py-3 flex items-center justify-between sticky top-0 z-50">
-
         {/* LOGO */}
         <Link to="/" className="font-bold text-xl">
           ShopX
@@ -74,16 +74,28 @@ const Home: React.FC = () => {
 
         {/* AUTH + CART */}
         <div className="flex items-center gap-4">
+          {/* AUTH SWITCH */}
+          {user ? (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1 text-red-600"
+            >
+              <LogIn size={16} />
+              Logout
+            </button>
+          ) : (
+            <>
+              <Link to="/login" className="flex items-center gap-1">
+                <LogIn size={16} /> Login
+              </Link>
 
-          <button className="flex items-center gap-1">
-            <LogIn size={16} /> Login
-          </button>
+              <Link to="/register" className="flex items-center gap-1">
+                <User size={16} /> Register
+              </Link>
+            </>
+          )}
 
-          <button className="flex items-center gap-1">
-            <User size={16} /> Register
-          </button>
-
-          {/* CART (Redux-powered badge) */}
+          {/* CART */}
           <Link to="/cart" className="relative">
             <ShoppingCart />
 
@@ -93,13 +105,10 @@ const Home: React.FC = () => {
               </span>
             )}
           </Link>
-
         </div>
       </header>
 
-      {/* ============================== */}
       {/* HERO */}
-      {/* ============================== */}
       <section className="bg-black text-white text-center py-20">
         <h1 className="text-4xl font-bold">Shop Smart, Shop Fast</h1>
         <p className="mt-2 text-gray-300">
@@ -107,11 +116,8 @@ const Home: React.FC = () => {
         </p>
       </section>
 
-      {/* ============================== */}
       {/* FILTERS */}
-      {/* ============================== */}
       <section className="p-4 flex justify-between">
-
         <div className="flex items-center gap-2">
           <Filter size={16} />
           <select
@@ -135,19 +141,15 @@ const Home: React.FC = () => {
             <option value="price_high">High to Low</option>
           </select>
         </div>
-
       </section>
 
-      {/* ============================== */}
       {/* PRODUCTS */}
-      {/* ============================== */}
       <ProductFilters
         products={products}
         search={search}
         category={category}
         sort={sort}
       />
-
     </div>
   );
 };
