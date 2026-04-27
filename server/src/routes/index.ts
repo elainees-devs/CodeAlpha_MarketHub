@@ -35,6 +35,7 @@ routes.use("/roles", roleRouter);
 routes.use("/user-roles", userRoleRouter);
 
 routes.use("/audit-logs", auditLogRouter);
+routes.use("/auth", authRouter);
 
 routes.use("/users", userRouter);
 
