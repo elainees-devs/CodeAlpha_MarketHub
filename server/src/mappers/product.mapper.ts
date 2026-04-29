@@ -14,6 +14,7 @@ export type ProductEntity = {
   description: string | null;
   price: Decimal;
   stock: number;
+  product_images?: ProductImageEntity[]; // OPTIONAL - only included in certain queries
 
   category_id: number;
   subcategory_id: number | null;
@@ -34,7 +35,7 @@ export type ProductEntity = {
 
 export type ProductImageEntity = {
   id: number;
-  product_id: number | null;
+  product_id: number;
   image_url: string;
   is_main: boolean | null;
   position: number | null;
@@ -74,6 +75,7 @@ export const mapProduct = (p: ProductEntity): IProduct => {
 
     price: p.price,
     stock: p.stock,
+    product_images: p.product_images?.map(mapProductImage) ?? [],
 
     category_id: p.category_id,
     subcategory_id: p.subcategory_id,
