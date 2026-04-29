@@ -9,7 +9,7 @@ import { z } from "zod";
 // DB Product Image Schema (internal)
 export const ProductImageSchema = z.object({
   id: z.number(),
-  product_id: z.number().nullable(),
+  product_id: z.number(),
 
   image_url: z.string(),
 
@@ -25,7 +25,7 @@ export const ProductImageSchema = z.object({
  * Create Product Image Schema
  */
 export const CreateProductImageSchema = z.object({
-  product_id: z.number().optional(),
+  product_id: z.number(),
 
   image_url: z.string(),
 
@@ -54,7 +54,7 @@ export const DeleteProductImageSchema = z.object({
  */
 export const ProductImageResponseSchema = z.object({
   id: z.number(),
-  product_id: z.number().nullable(),
+  product_id: z.number(),
 
   image_url: z.string(),
 
