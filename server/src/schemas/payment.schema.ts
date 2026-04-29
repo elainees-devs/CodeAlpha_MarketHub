@@ -13,18 +13,12 @@ import { Decimal } from "decimal.js";
 export const PaymentSchema = z.object({
   id: z.number(),
   order_id: z.number(),
-
   provider: z.enum(PAYMENT_PROVIDERS),
-
   amount: z.number().positive(), // Decimal -> number in app layer
-
-  status: z.enum(PAYMENT_STATUS).optional(),
-
-  transaction_ref: z.string().nullable().optional(),
-
-  attempt_count: z.number().int().min(1).optional(),
-
-  created_at: z.coerce.date().optional(),
+  status: z.enum(PAYMENT_STATUS),
+  transaction_ref: z.string(),
+  attempt_count: z.number().int().min(1),
+  created_at: z.coerce.date(),
   updated_at: z.coerce.date().optional(),
 });
 
@@ -33,12 +27,8 @@ export const PaymentSchema = z.object({
  */
 export const CreatePaymentSchema = z.object({
   order_id: z.number(),
-
   provider: z.enum(PAYMENT_PROVIDERS),
-
   amount: z.number().positive(),
-
-  transaction_ref: z.string().optional(),
 });
 
 /**
@@ -48,7 +38,7 @@ export const UpdatePaymentSchema = z.object({
   status: z.enum(PAYMENT_STATUS).optional(),
   transaction_ref: z.string().optional(),
   attempt_count: z.number().int().min(1).optional(),
-});
+}); 
 
 /**
  * Delete Payment Schema
@@ -62,16 +52,12 @@ export const DeletePaymentSchema = z.object({
  */
 export const PaymentResponseSchema = z.object({
   id: z.number(),
-  order_id: z.number().nullable(),
-
+  order_id: z.number(),
   provider: z.enum(PAYMENT_PROVIDERS),
-
   amount: z.number().positive(),
   status: z.enum(PAYMENT_STATUS),
-
-  transaction_ref: z.string().nullable().optional(),
+  transaction_ref: z.string(),
   attempt_count: z.number().int(),
-
   created_at: z.coerce.date(),
 });
 
