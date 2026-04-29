@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-
-type ShipmentFormData = {
-  customer_name: string;
-  address: string;
-  customer_email: string;
-  city: string;
-  phone: string;
-};
+import type { ShipmentFormData } from "../../features/shipment/types";
 
 type Props = {
   onSubmit: (data: ShipmentFormData) => void;
