@@ -16,18 +16,29 @@ class OrderService {
   // GET ORDER BY ID
   // =====================================================
   async getOrderById(id: number): Promise<OrderResponse> {
-    const order = await prisma.orders.findUnique({
-      where: { id },
-      include: { order_items: true },
-    });
-
-    if (!order) {
-      throw new ApiError(404, "Order not found");
-    }
-
-    return mapOrder(order as OrderEntity);
+  if (!id || isNaN(id)) {
+    throw new ApiError(400, "Valid Order ID is required");
   }
 
+  const order = await prisma.orders.findUnique({
+    where: {
+      id,
+    },
+    include: {
+      order_items: {
+        include: {
+          products: true,
+        },
+      },
+    },
+  });
+
+  if (!order) {
+    throw new ApiError(404, "Order not found");
+  }
+
+  return mapOrder(order as OrderEntity);
+}
   // =====================================================
   // GET USER ORDERS
   // =====================================================
@@ -226,89 +237,125 @@ class OrderService {
   // =====================================================
   // PLACE ORDER (CHECKOUT)
   // =====================================================
-  async placeOrder(data: CreateOrderInput): Promise<OrderResponse> {
-    return prisma.$transaction(async (tx) => {
+ async placeOrder(data: CreateOrderInput): Promise<OrderResponse> {
+  return prisma.$transaction(async (tx) => {
+
+    const cartItems = data.cartItems;
+
+    // ==============================
+    // VALIDATION
+    // ==============================
+    if (!cartItems || cartItems.length === 0) {
+      throw new ApiError(400, "Cart is empty");
+    }
+
+    // ==============================
+    // FETCH PRODUCTS
+    // ==============================
+    const productIds = cartItems.map((i) => i.product_id);
+
+    const products = await tx.products.findMany({
+      where: { id: { in: productIds } },
+    });
+
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    let total = new Decimal(0);
+
+    const orderItems: {
+      product_id: number;
+      quantity: number;
+      price: Decimal;
+    }[] = [];
+
+    // ==============================
+    // PROCESS CART ITEMS
+    // ==============================
+    for (const item of cartItems) {
+      const product = productMap.get(item.product_id);
+
+      if (!product) {
+        throw new ApiError(404, `Product ${item.product_id} not found`);
+      }
+
+      if (product.stock < item.quantity) {
+        throw new ApiError(
+          400,
+          `Insufficient stock for ${product.name}`
+        );
+      }
+
+      const price = new Decimal(product.price);
+      total = total.add(price.mul(item.quantity));
+
+      // decrement stock
+      await tx.products.update({
+        where: { id: product.id },
+        data: {
+          stock: {
+            decrement: item.quantity,
+          },
+        },
+      });
+
+      orderItems.push({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price: product.price,
+      });
+    }
+
+    // ==============================
+    // CREATE ORDER
+    // ==============================
+    const order = await tx.orders.create({
+      data: {
+        user_id: data.user_id ?? null,
+        total,
+        status: order_status.PENDING,
+        shipping_address: data.shipping_address ?? null,
+        phone: data.phone ?? null,
+        customer_name: data.customer_name ?? null,
+        customer_email: data.customer_email ?? null,
+      },
+    });
+
+    // ==============================
+    // CREATE ORDER ITEMS
+    // ==============================
+    await tx.order_items.createMany({
+      data: orderItems.map((i) => ({
+        ...i,
+        order_id: order.id,
+      })),
+    });
+
+    // ==============================
+    // OPTIONAL: CLEAN DB CART (safe fallback)
+    // ==============================
+    if (data.user_id) {
       const cart = await tx.carts.findFirst({
         where: { user_id: data.user_id },
-        include: { cart_items: true },
       });
 
-      if (!cart || cart.cart_items.length === 0) {
-        throw new ApiError(400, "Cart is empty");
-      }
-
-      const productIds = cart.cart_items.map((i) => i.product_id);
-
-      const products = await tx.products.findMany({
-        where: { id: { in: productIds } },
-      });
-
-      const productMap = new Map(products.map((p) => [p.id, p]));
-
-      let total = new Decimal(0);
-
-      const orderItems: {
-        product_id: number;
-        quantity: number;
-        price: Decimal;
-      }[] = [];
-
-      for (const item of cart.cart_items) {
-        const product = productMap.get(item.product_id);
-
-        if (!product) throw new ApiError(404, "Product not found");
-
-        if (product.stock < item.quantity) {
-          throw new ApiError(400, "Insufficient stock");
-        }
-
-        const price = new Decimal(product.price);
-        total = total.add(price.mul(item.quantity));
-
-        await tx.products.update({
-          where: { id: product.id },
-          data: { stock: { decrement: item.quantity } },
-        });
-
-        orderItems.push({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: product.price,
+      if (cart) {
+        await tx.cart_items.deleteMany({
+          where: { cart_id: cart.id },
         });
       }
+    }
 
-      const order = await tx.orders.create({
-        data: {
-          user_id: data.user_id ?? null,
-          total,
-          status: order_status.PENDING,
-          shipping_address: data.shipping_address ?? null,
-          phone: data.phone ?? null,
-          customer_name: data.customer_name ?? null,
-          customer_email: data.customer_email ?? null,
-        },
-        include: { order_items: true },
-      });
+    // ==============================
+    // FINAL ORDER FETCH
+    // ==============================
+    const finalOrder = await tx.orders.findUnique({
+      where: { id: order.id },
+      include: { order_items: true },
+    })
 
-      await tx.order_items.createMany({
-        data: orderItems.map((i) => ({
-          ...i,
-          order_id: order.id,
-        })),
-      });
-
-      await tx.cart_items.deleteMany({
-        where: { cart_id: cart.id },
-      });
-
-      const finalOrder = await tx.orders.findUnique({
-        where: { id: order.id },
-        include: { order_items: true },
-      });
-
-      return mapOrder(finalOrder as OrderEntity);
-    });
-  }
+    return mapOrder(finalOrder as OrderEntity);
+  });
+}
 }
 
 export const orderService = new OrderService();
