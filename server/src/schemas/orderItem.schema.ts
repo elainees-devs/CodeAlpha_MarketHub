@@ -9,7 +9,7 @@ import { ORDER_STATUS } from "../utils";
 // DB Order Item Schema (internal)
 export const OrderItemSchema = z.object({
   id: z.number(),
-  order_id: z.number().nullable(),
+  order_id: z.number(),
   product_id: z.number().nullable(),
   quantity: z.number().int().positive(),
   price: z.number(), // Decimal -> number in app layer
@@ -22,7 +22,7 @@ export const OrderItemSchema = z.object({
  * Create Order Item Schema
  */
 export const CreateOrderItemSchema = z.object({
-  order_id: z.number().optional(),
+  order_id: z.number(),
   product_id: z.number(),
   quantity: z.number().int().min(1),
   price: z.number().positive(),
@@ -56,7 +56,7 @@ export const DeleteOrderItemSchema = z.object({
  */
 export const OrderItemResponseSchema = z.object({
   id: z.number(),
-  order_id: z.number().nullable(),
+  order_id: z.number(),
   product_id: z.number().nullable(),
   quantity: z.number(),
   price: z.number(),
