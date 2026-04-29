@@ -3,13 +3,28 @@ import { orderService } from "../services";
 import { ApiError } from "../utils";
 import { Decimal } from "@prisma/client/runtime/library";
 
+// ==============================
+// SAFE ID PARSER
+// ==============================
+const parseId = (id: string | string[] | undefined, label = "ID") => {
+  const value = Array.isArray(id) ? id[0] : id;
+
+  const num = Number(value);
+
+  if (!value || isNaN(num)) {
+    throw new ApiError(400, `Valid ${label} is required`);
+  }
+
+  return num;
+};
+
 class OrderController {
   // =====================================================
   // GET ORDER BY ID
   // =====================================================
   async getOrderById(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
+      const id = parseId(req.params.id, "Order ID");
 
       const order = await orderService.getOrderById(id);
 
@@ -24,11 +39,11 @@ class OrderController {
   }
 
   // =====================================================
-  // GET USER ORDERS (PAGINATED)
+  // GET USER ORDERS
   // =====================================================
   async getUserOrders(req: Request, res: Response, next: NextFunction) {
     try {
-      const user_id = Number(req.params.user_id);
+      const user_id = parseId(req.params.user_id, "User ID");
 
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 10;
@@ -76,7 +91,7 @@ class OrderController {
           customer_email,
         },
         (req as any).user?.id,
-        (req as any).session_id,
+        (req as any).session_id
       );
 
       return res.status(201).json({
@@ -94,21 +109,21 @@ class OrderController {
   // =====================================================
   async updateOrder(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
-      const { status, shipping_address, phone, customer_name, customer_email } =
-        req.body;
+      const id = parseId(req.params.id, "Order ID");
+
+      const {
+        status,
+        shipping_address,
+        phone,
+        customer_name,
+        customer_email,
+      } = req.body;
 
       const order = await orderService.updateOrder(
         id,
-        {
-          status,
-          shipping_address,
-          phone,
-          customer_name,
-          customer_email,
-        },
+        { status, shipping_address, phone, customer_name, customer_email },
         (req as any).user?.id,
-        (req as any).session_id,
+        (req as any).session_id
       );
 
       return res.status(200).json({
@@ -126,12 +141,12 @@ class OrderController {
   // =====================================================
   async cancelOrder(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
+      const id = parseId(req.params.id, "Order ID");
 
       const order = await orderService.cancelOrder(
         id,
         (req as any).user?.id,
-        (req as any).session_id,
+        (req as any).session_id
       );
 
       return res.status(200).json({
@@ -149,12 +164,12 @@ class OrderController {
   // =====================================================
   async deleteOrder(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
+      const id = parseId(req.params.id, "Order ID");
 
       await orderService.deleteOrder(
         id,
         (req as any).user?.id,
-        (req as any).session_id,
+        (req as any).session_id
       );
 
       return res.status(200).json({
@@ -171,24 +186,31 @@ class OrderController {
   // =====================================================
   async placeOrder(req: Request, res: Response, next: NextFunction) {
     try {
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return next(new ApiError(401, "Unauthorized"));
+      }
+
       const {
-        user_id,
         shipping_address,
         phone,
         customer_name,
         customer_email,
+        cartItems,
       } = req.body;
 
-      if (!user_id) {
-        return next(new ApiError(400, "user_id is required"));
+      if (!cartItems || cartItems.length === 0) {
+        return next(new ApiError(400, "Cart is empty"));
       }
 
       const order = await orderService.placeOrder({
-        user_id,
+        user_id: userId,
         shipping_address,
         phone,
         customer_name,
         customer_email,
+        cartItems,
       });
 
       return res.status(201).json({
@@ -197,6 +219,7 @@ class OrderController {
         data: order,
       });
     } catch (error: any) {
+      console.error("🔥 PLACE ORDER ERROR:", error);
       return next(new ApiError(400, error.message));
     }
   }
