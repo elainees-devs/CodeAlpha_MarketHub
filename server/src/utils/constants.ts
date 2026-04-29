@@ -80,10 +80,12 @@ export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number];
  */
 export const SHIPMENT_STATUS = [
   "PENDING",
+  "PROCESSING",
   "SHIPPED",
   "DELIVERED",
-  "RETURNED",
+  "CANCELLED",
 ] as const;
+
 
 export type ShipmentStatus = (typeof SHIPMENT_STATUS)[number];
 
