@@ -27,12 +27,12 @@ class ShipmentService {
   ): Promise<ShipmentResponse> {
     const shipment = await prisma.shipments.create({
       data: {
-        order_id: data.order_id ?? null,
+        order_id: data.order_id,
         address: data.address,
-        city: data.city ?? null,
-        phone: data.phone ?? null,
-        status: (data.status as ShipmentStatus) ?? "PENDING",
-        tracking_number: data.tracking_number ?? null,
+        city: data.city,
+        phone: data.phone,
+        status: (data.status as ShipmentStatus),
+        tracking_number: data.tracking_number,
       },
     });
 
