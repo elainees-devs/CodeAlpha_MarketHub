@@ -9,6 +9,7 @@ import { PaymentEntity, mapPayment } from "../mappers";
 import { payment_provider, payment_status } from "@prisma/client";
 
 import { auditLogService } from "./auditLog.service";
+import { randomUUID } from "crypto";
 
 class PaymentService {
   // =====================================================
@@ -86,6 +87,7 @@ class PaymentService {
       data: {
         amount: data.amount,
         provider: data.provider as payment_provider,
+        transaction_ref: randomUUID(),
         status: payment_status.PENDING,
         attempt_count: 1,
 
