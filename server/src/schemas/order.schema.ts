@@ -35,13 +35,24 @@ export const OrderSchema = z.object({
 /**
  * Create Order Schema
  */
-export const CreateOrderSchema = z.object({
 
+
+export const CreateOrderSchema = z.object({
   user_id: z.number().optional(),
   shipping_address: z.string().optional(),
   phone: z.string().optional(),
   customer_name: z.string().optional(),
   customer_email: z.string().optional(),
+
+  cartItems: z
+    .array(
+      z.object({
+        product_id: z.number(),
+        quantity: z.number().min(1),
+        price: z.number(),
+      })
+    )
+    .min(1, "Cart cannot be empty"),
 });
 
 /**
