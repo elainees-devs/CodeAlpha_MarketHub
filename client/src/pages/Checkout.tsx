@@ -1,16 +1,25 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-
 import { clearCart } from "../features/cart/cartSlice";
 import type { RootState } from "../app/store";
+import { orderApi } from "../services/orderService";
+import ShipmentForm from "../components/checkout/ShipmentForm";
+import BackButton from "../components/shared/BackButton";
+import PlaceOrderButton from "../components/checkout/PlaceOrderButton";
+import type { ShipmentFormData } from "../features/shipment/types";
+
+type Step = "review" | "details" | "confirm";
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
-  // Redux cart state
   const cart = useSelector((state: RootState) => state.cart.items);
+
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<Step>("review");
+
+  const [shipmentData, setShipmentData] = useState<ShipmentFormData | null>(null);
 
   const subtotal = cart.reduce(
     (total, item) => total + item.price * item.quantity,
@@ -20,90 +29,168 @@ const Checkout: React.FC = () => {
   const shipping = subtotal > 0 ? 5 : 0;
   const total = subtotal + shipping;
 
-  const handlePlaceOrder = () => {
-    if (cart.length === 0) return;
+  // ==============================
+  // PLACE ORDER
+  // ==============================
+  const handlePlaceOrder = async () => {
+    try {
+      setLoading(true);
 
-    // Clear Redux cart
-    dispatch(clearCart());
+      if (!shipmentData) {
+        alert("Missing shipping details");
+        return;
+      }
 
-    alert("Order placed successfully!");
+      const response = await orderApi.placeOrder({
+        shipping_address: shipmentData.address,
+        phone: shipmentData.phone,
+        customer_name: shipmentData.customer_name,
+        customer_email: shipmentData.customer_email,
+        city: shipmentData.city,
 
-    navigate("/");
+        cartItems: cart.map((item) => ({
+          product_id: item.id,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+      });
+
+      dispatch(clearCart());
+
+      const orderId = response?.data?.id;
+
+      if (!orderId) {
+        throw new Error("Order ID not returned from server");
+      }
+
+      navigate(`/order-success/${orderId}`);
+    } catch (error) {
+      console.error(error);
+      alert("Checkout failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleBack = () => {
-    navigate("/cart");
-  };
+  if (cart.length === 0) {
+    return <p className="p-6">Your cart is empty</p>;
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-6">
+      <BackButton />
       <h1 className="text-2xl font-bold mb-6">Checkout</h1>
 
-      {cart.length === 0 ? (
-        <div className="text-gray-600">
-          Your cart is empty.
-          <div className="mt-4">
-            <button
-              onClick={() => navigate("/products")}
-              className="bg-blue-600 text-white px-4 py-2 rounded"
-            >
-              Continue Shopping
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* CART ITEMS */}
-          <div className="md:col-span-2 space-y-4">
-            {cart.map((item) => (
-              <div
-                key={item.id}
-                className="flex justify-between border p-4 rounded"
-              >
-                <div>
-                  <h2 className="font-medium">{item.name}</h2>
-                  <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                </div>
+      {/* ===================== */}
+      {/* STEPS */}
+      {/* ===================== */}
+      <div className="flex gap-6 border-b mb-6">
+        <button
+          onClick={() => setStep("review")}
+          className={step === "review" ? "font-bold" : ""}
+        >
+          1. Review
+        </button>
 
-                <div className="font-semibold">
-                  KES {(item.price * item.quantity).toLocaleString()}
-                </div>
+        <button
+          onClick={() => setStep("details")}
+          className={step === "details" ? "font-bold" : ""}
+        >
+          2. Details
+        </button>
+
+        <button
+          onClick={() => {
+            if (!shipmentData) {
+              alert("Fill shipping details first");
+              return;
+            }
+            setStep("confirm");
+          }}
+          className={step === "confirm" ? "font-bold" : ""}
+        >
+          3. Confirm
+        </button>
+      </div>
+
+      {/* ===================== */}
+      {/* REVIEW */}
+      {/* ===================== */}
+      {step === "review" && (
+        <div className="space-y-4">
+          {cart.map((item) => (
+            <div key={item.id} className="flex justify-between border p-4">
+              <div>
+                <h2>{item.name}</h2>
+                <p>Qty: {item.quantity}</p>
               </div>
-            ))}
+              <div>KES {(item.price * item.quantity).toLocaleString()}</div>
+            </div>
+          ))}
+
+          <button
+            onClick={() => setStep("details")}
+            className="bg-black text-white px-4 py-2 rounded"
+          >
+            Continue
+          </button>
+        </div>
+      )}
+
+      {/* ===================== */}
+      {/* DETAILS */}
+      {/* ===================== */}
+      {step === "details" && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Shipping Details</h2>
+
+          <ShipmentForm
+            onSubmit={(data) => setShipmentData(data)}
+            loading={loading}
+          />
+
+          <button
+            onClick={() => {
+              if (!shipmentData) {
+                alert("Please fill shipping form first");
+                return;
+              }
+              setStep("confirm");
+            }}
+            className="bg-black text-white px-4 py-2 rounded"
+          >
+            Continue
+          </button>
+        </div>
+      )}
+
+      {/* ===================== */}
+      {/* CONFIRM */}
+      {/* ===================== */}
+      {step === "confirm" && (
+        <div className="border p-4 space-y-3">
+          <h2 className="text-lg font-semibold">Order Summary</h2>
+
+          <div className="flex justify-between">
+            <span>Subtotal</span>
+            <span>KES {subtotal.toLocaleString()}</span>
           </div>
 
-          {/* SUMMARY */}
-          <div className="border p-4 rounded h-fit">
-            <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
-
-            <div className="flex justify-between mb-2">
-              <span>Subtotal</span>
-              <span>KES {subtotal.toLocaleString()}</span>
-            </div>
-
-            <div className="flex justify-between mb-2">
-              <span>Shipping</span>
-              <span>KES {shipping.toLocaleString()}</span>
-            </div>
-
-            <hr className="my-3" />
-
-            <div className="flex justify-between font-bold mb-4">
-              <span>Total</span>
-              <span>KES {total.toLocaleString()}</span>
-            </div>
-
-            <button
-              onClick={handlePlaceOrder}
-              className="w-full bg-green-600 text-white py-2 rounded mb-2"
-            >
-              Place Order
-            </button>
-
-            <button onClick={handleBack} className="w-full border py-2 rounded">
-              Back to Cart
-            </button>
+          <div className="flex justify-between">
+            <span>Shipping</span>
+            <span>KES {shipping}</span>
           </div>
+
+          <div className="flex justify-between font-bold text-lg">
+            <span>Total</span>
+            <span>KES {total.toLocaleString()}</span>
+          </div>
+
+          <PlaceOrderButton
+            onClick={handlePlaceOrder}
+            loading={loading}
+            disabled={loading}
+          />
         </div>
       )}
     </div>
