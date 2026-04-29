@@ -70,7 +70,7 @@ class PaymentController {
 
     const payment = await paymentService.createPayment(
       order_id,
-      { amount, provider, transaction_ref, user_id, order_id },
+      { amount, provider, user_id, order_id },
       user_id,
       (req as any).session_id
     );
