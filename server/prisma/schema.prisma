@@ -305,15 +305,15 @@ model order_items {
 
 model payments {
   id              Int              @id @default(autoincrement())
-  order_id        Int?
+  order_id        Int
   provider        payment_provider
   amount          Decimal @db.Decimal(10,2)
   status          payment_status @default(PENDING)
-  transaction_ref String? @unique
+  transaction_ref String @unique
   attempt_count   Int @default(1)
   created_at      DateTime @default(now())
 
-  orders orders? @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  orders orders @relation(fields: [order_id], references: [id], onDelete: Cascade)
 
   @@index([order_id])
   @@index([status])
@@ -324,10 +324,10 @@ model shipments {
   id              Int     @id @default(autoincrement())
   order_id        Int
   address         String
-  city            String?
-  phone           String?
+  city            String
+  phone           String
   status shipment_status @default(PENDING)
-  tracking_number String? @unique
+  tracking_number String @unique
   created_at      DateTime @default(now())
 
   orders orders @relation(fields: [order_id], references: [id], onDelete: Cascade)
@@ -339,14 +339,14 @@ model shipments {
 
 model product_images {
   id         Int     @id @default(autoincrement())
-  product_id Int?
+  product_id Int
   image_url  String
   is_main    Boolean @default(false)
   position   Int @default(0)
   created_at DateTime @default(now())
   deleted_at DateTime?
 
-  products products? @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  products products @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
   @@index([product_id])
 }
