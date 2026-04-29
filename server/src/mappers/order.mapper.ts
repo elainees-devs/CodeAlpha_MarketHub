@@ -1,50 +1,72 @@
-import { Decimal } from "@prisma/client/runtime/library";
-import { IOrder, IOrderItem } from "../types/interfaces.types";
+import Decimal from "decimal.js";
 import { OrderStatus } from "../utils/constants";
-import { OrderItemEntity } from "./orderItem.mapper";
+import { IOrder, IOrderItem } from "../types/interfaces.types";
 
-/**
- * DB Entity (Prisma / raw DB type)
- */
-export type OrderEntity = {
+export type OrderItemEntity = {
   id: number;
-  user_id: number;
-  total: Decimal;
-  status: OrderStatus; 
-  shipping_address: string | null;
-  phone: string | null;
-  order_items: OrderItemEntity[]; // include order items if needed
-  customer_name: string | null;
-  customer_email: string | null;
-  created_at: Date | null;
+  order_id: number;
+  product_id: number;
+  quantity: number;
+  price: Decimal;
+
+  created_at: Date;
   deleted_at: Date | null;
 };
 
-/**
- * Map DB Order → API Order (IOrder)
- */
-export const mapOrder = (order: OrderEntity): IOrder => {
+export type OrderEntity = {
+  id: number;
+  user_id: number;
+
+  total: Decimal;
+  status: OrderStatus;
+
+  shipping_address: string;
+  phone: string;
+  customer_name: string;
+  customer_email: string;
+
+  order_items?: OrderItemEntity[];
+
+  created_at: Date;
+  deleted_at: Date | null;
+};
+
+export const mapOrderItem = (item: OrderItemEntity): IOrderItem => {
   return {
-    id: order.id,
-    user_id: order.user_id,
-    total: Number(order.total), // convert Decimal to number
-    status: order.status, // replace with OrderStatus if available
-    shipping_address: order.shipping_address ?? null,
-    phone: order.phone ?? null,
-    customer_name: order.customer_name ?? null,
-    customer_email: order.customer_email ?? null,
-    order_items: order.order_items
-      ? order.order_items.map((item) => ({
-          id: item.id,
-          order_id: item.order_id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: Number(item.price), // convert Decimal to number
-          created_at: item.created_at ? new Date(item.created_at) : new Date(),
-          deleted_at: item.deleted_at ? new Date(item.deleted_at) : null,
-        }))
-      : [],
-    created_at: order.created_at ? new Date(order.created_at) : new Date(),
-    deleted_at: order.deleted_at ? new Date(order.deleted_at) : null,
+    id: item.id,
+    order_id: item.order_id,
+    product_id: item.product_id,
+    quantity: item.quantity,
+
+    price: Number(item.price), // Decimal → number
+
+    created_at: item.created_at,
+    deleted_at: item.deleted_at,
+  };
+};
+
+/**
+ * ======================
+ * ORDER MAPPER
+ * ======================
+ */
+
+export const mapOrder = (o: OrderEntity): IOrder => {
+  return {
+    id: o.id,
+    user_id: o.user_id,
+
+    total: Number(o.total),
+    status: o.status,
+
+    shipping_address: o.shipping_address,
+    phone: o.phone,
+    customer_name: o.customer_name,
+    customer_email: o.customer_email,
+
+    order_items: o.order_items?.map(mapOrderItem) ?? [],
+
+    created_at: o.created_at,
+    deleted_at: o.deleted_at,
   };
 };
