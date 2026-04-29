@@ -6,13 +6,13 @@ import { ShipmentStatus } from "../utils/constants";
  */
 export type ShipmentEntity = {
   id: number;
-  order_id: number | null;
+  order_id: number;
   address: string;
-  city: string | null;
-  phone: string | null;
+  city: string;
+  phone: string;
   status: ShipmentStatus;
-  tracking_number: string | null;
-  created_at: Date | null;
+  tracking_number: string;
+  created_at: Date;
 };
 
 /**
@@ -21,12 +21,12 @@ export type ShipmentEntity = {
 export const mapShipment = (shipment: ShipmentEntity): IShipment => {
   return {
     id: shipment.id,
-    order_id: shipment.order_id ?? null,
+    order_id: shipment.order_id,
     address: shipment.address,
-    city: shipment.city ?? null,
-    phone: shipment.phone ?? null,
+    city: shipment.city,
+    phone: shipment.phone,
     status: shipment.status,
-    tracking_number: shipment.tracking_number ?? null,
-    created_at: shipment.created_at ? new Date(shipment.created_at) : new Date(),
+    tracking_number: shipment.tracking_number,
+    created_at: shipment.created_at,
   };
 };
