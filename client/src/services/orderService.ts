@@ -4,25 +4,54 @@ import { apiClient } from "./apiClient";
 // TYPES
 // ==============================
 
+// ==============================
+// ORDER ITEM TYPE
+// ==============================
+
 export type OrderItem = {
-  productId: string;
-  name: string;
-  price: number;
+  id: number;
+  order_id: number;
+  product_id: number;
   quantity: number;
+  price: number;
+  created_at?: string;
+  deleted_at?: string | null;
 };
+
+// ==============================
+// ORDER TYPE
+// ==============================
 
 export type Order = {
   id: string;
   userId: string;
-  items: OrderItem[];
   totalAmount: number;
-  status: "pending" | "paid" | "shipped" | "delivered" | "cancelled";
+
+  status:
+    | "pending"
+    | "paid"
+    | "shipped"
+    | "delivered"
+    | "cancelled";
+
   createdAt: string;
+
+  order_items: OrderItem[];
 };
 
-// payloads
+// PAYLOAD TYPES
 export type CreateOrderPayload = {
-  cartId?: string;
+  shipping_address: string;
+  phone: string;
+  customer_name: string;
+  customer_email: string;
+  city: string; 
+
+  cartItems: {
+    product_id: number;
+    quantity: number;
+    price: number;
+  }[];
 };
 
 export type UpdateOrderPayload = {
@@ -38,13 +67,13 @@ class OrderApi {
   // GET ORDER BY ID
   async getOrderById(id: string): Promise<Order> {
     const res = await apiClient.get(`/orders/${id}`);
-    return res.data;
+    return res.data.data;
   }
 
   // GET USER ORDERS
   async getUserOrders(userId: string) {
     const res = await apiClient.get(`/orders/user/${userId}`);
-    return res.data;
+    return res.data.data;
   }
 
   // CREATE BASE ORDER
@@ -55,9 +84,9 @@ class OrderApi {
 
   // PLACE ORDER (CHECKOUT)
   async placeOrder(data: CreateOrderPayload) {
-    const res = await apiClient.post("/orders/checkout", data);
-    return res.data;
-  }
+  const res = await apiClient.post("/orders/checkout", data);
+  return res.data;
+}
 
   // UPDATE ORDER (ADMIN / STAFF)
   async updateOrder(id: string, data: UpdateOrderPayload) {
