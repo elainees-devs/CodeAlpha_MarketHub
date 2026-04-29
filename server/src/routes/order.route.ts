@@ -12,30 +12,23 @@ import {
   DeleteOrderSchema,
 } from "../schemas";
 
-
 const router = Router();
 
-// =====================================================
 // GET ORDER BY ID
-// =====================================================
 router.get(
   "/:id",
   authenticateMiddleware,
   (req, res, next) => orderController.getOrderById(req, res, next)
 );
 
-// =====================================================
-// GET USER ORDERS (PAGINATED)
-// =====================================================
+// GET USER ORDERS
 router.get(
   "/user/:user_id",
   authenticateMiddleware,
   (req, res, next) => orderController.getUserOrders(req, res, next)
 );
 
-// =====================================================
-// CREATE BASE ORDER
-// =====================================================
+// CREATE ORDER
 router.post(
   "/",
   authenticateMiddleware,
@@ -43,9 +36,7 @@ router.post(
   (req, res, next) => orderController.createBaseOrder(req, res, next)
 );
 
-// =====================================================
-// PLACE ORDER (CHECKOUT)
-// =====================================================
+// CHECKOUT
 router.post(
   "/checkout",
   authenticateMiddleware,
@@ -53,30 +44,23 @@ router.post(
   (req, res, next) => orderController.placeOrder(req, res, next)
 );
 
-// =====================================================
-// UPDATE ORDER (ADMIN / STAFF ONLY)
-// =====================================================
+// UPDATE ORDER
 router.patch(
   "/:id",
   authenticateMiddleware,
-  requireRole(["ADMIN,STAFF"]),
-
+  requireRole(["ADMIN", "STAFF"]),
   validate(UpdateOrderSchema),
   (req, res, next) => orderController.updateOrder(req, res, next)
 );
 
-// =====================================================
-// CANCEL ORDER (USER or ADMIN)
-// =====================================================
+// CANCEL ORDER
 router.patch(
   "/:id/cancel",
   authenticateMiddleware,
   (req, res, next) => orderController.cancelOrder(req, res, next)
 );
 
-// =====================================================
-// DELETE ORDER (ADMIN ONLY)
-// =====================================================
+// DELETE ORDER
 router.delete(
   "/:id",
   authenticateMiddleware,
