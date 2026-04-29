@@ -13,13 +13,13 @@ export const ShipmentStatusEnumSchema = z.enum(SHIPMENT_STATUS);
 // DB Shipment Schema (internal)
 export const ShipmentSchema = z.object({
   id: z.number(),
-  order_id: z.number().nullable().optional(),
+  order_id: z.number(),
   address: z.string(),
-  city: z.string().nullable().optional(),
-  phone: z.string().nullable().optional(),
+  city: z.string().nullable(),
+  phone: z.string().nullable(),
   status: ShipmentStatusEnumSchema,
-  tracking_number: z.string().nullable().optional(),
-  created_at: z.coerce.date().optional(),
+  tracking_number: z.string(),
+  created_at: z.coerce.date(),
   orders: z.array(z.any()).optional(),
 });
 
@@ -27,12 +27,12 @@ export const ShipmentSchema = z.object({
  * Create Shipment Schema
  */
 export const CreateShipmentSchema = z.object({
-  order_id: z.number().optional(),
+  order_id: z.number(),
   address: z.string(),
-  city: z.string().optional(),
-  phone: z.string().optional(),
-  status: ShipmentStatusEnumSchema.optional(),
-  tracking_number: z.string().optional(),
+  city: z.string(),
+  phone: z.string(),
+  status: ShipmentStatusEnumSchema,
+  tracking_number: z.string(),
 });
 
 /**
@@ -63,12 +63,12 @@ export const DeleteShipmentSchema = z.object({
  */
 export const ShipmentResponseSchema = z.object({
   id: z.number(),
-  order_id: z.number().nullable().optional(),
+  order_id: z.number(),
   address: z.string(),
-  city: z.string().nullable().optional(),
-  phone: z.string().nullable().optional(),
+  city: z.string().nullable(),
+  phone: z.string().nullable(),
   status: ShipmentStatusEnumSchema,
-  tracking_number: z.string().nullable().optional(),
+  tracking_number: z.string(),
   created_at: z.coerce.date(),
 });
 
