@@ -63,6 +63,7 @@ export interface IProduct {
   price: Decimal;
   stock: number;
   category_id: number;
+  product_images: IProductImage[];
   category: ICategory;
   subcategory_id: number | null;
   subcategory: ISubcategory | null;
@@ -102,22 +103,22 @@ export interface ICartItem {
 
 export interface IOrder {
   id: number;
-  user_id: number | null;
+  user_id: number;
   total: number;
   status: OrderStatus;
-  shipping_address: string | null;
-  phone: string | null;
+  shipping_address: string;
+  phone: string;
   order_items: IOrderItem[];
-  customer_name: string | null;
-  customer_email: string | null;
+  customer_name: string;
+  customer_email: string;
   created_at: Date;
   deleted_at: Date | null;
 }
 
 export interface IOrderItem {
   id: number;
-  order_id: number | null;
-  product_id: number | null;
+  order_id: number;
+  product_id: number;
   quantity: number;
   price: number;
   created_at: Date;
@@ -126,29 +127,29 @@ export interface IOrderItem {
 
 export interface IPayment {
   id: number;
-  order_id: number | null;
+  order_id: number;
   provider: PaymentProvider;
   amount: number;
   status: PaymentStatus
-  transaction_ref: string | null;
+  transaction_ref: string;
   attempt_count: number;
   created_at: Date;
 }
 
 export interface IShipment {
   id: number;
-  order_id: number | null;
+  order_id: number;
   address: string;
-  city: string | null;
-  phone: string | null;
+  city: string;
+  phone: string;
   status: ShipmentStatus;
-  tracking_number: string | null;
+  tracking_number: string;
   created_at: Date;
 }
 
 export interface IProductImage {
   id: number;
-  product_id: number | null;
+  product_id: number;
   image_url: string;
   is_main: boolean;
   position: number;
