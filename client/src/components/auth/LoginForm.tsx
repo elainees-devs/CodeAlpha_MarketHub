@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useAppDispatch } from "../../app/hooks";
 import { loginUser } from "../../features/auth/authSlice";
 
@@ -46,7 +46,7 @@ const LoginForm: React.FC = () => {
         loginUser({
           email: form.email,
           password: form.password,
-        })
+        }),
       );
 
       if (loginUser.fulfilled.match(result)) {
@@ -70,15 +70,11 @@ const LoginForm: React.FC = () => {
         onSubmit={handleSubmit}
         className="bg-white p-6 rounded shadow-md w-full max-w-sm"
       >
-        <h2 className="text-2xl font-bold mb-4 text-center">
-          Login
-        </h2>
+        <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
 
-        {/* ERROR */}
+        {/* ERROR MESSAGE */}
         {error && (
-          <div className="mb-3 text-red-500 text-sm text-center">
-            {error}
-          </div>
+          <div className="mb-3 text-red-500 text-sm text-center">{error}</div>
         )}
 
         {/* EMAIL */}
@@ -103,7 +99,7 @@ const LoginForm: React.FC = () => {
           required
         />
 
-        {/* SUBMIT */}
+        {/* LOGIN BUTTON */}
         <button
           type="submit"
           disabled={loading}
@@ -111,6 +107,14 @@ const LoginForm: React.FC = () => {
         >
           {loading ? "Logging in..." : "Login"}
         </button>
+
+        {/* REGISTER LINK */}
+        <p className="text-sm text-center mt-4">
+          Don’t have an account?{" "}
+          <Link to="/register" className="text-blue-600 hover:underline">
+            Register
+          </Link>
+        </p>
       </form>
     </div>
   );
