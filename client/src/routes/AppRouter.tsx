@@ -9,6 +9,7 @@ import Cart from "../pages/Cart";
 import Checkout from "../pages/Checkout";
 import OrderSuccess from "../pages/OrderSuccess";
 import ProtectedRoute from "./ProtectedRoute";
+import NotFound from "../pages/NotFound";
 
 const AppRoutes: React.FC = () => {
   return (
@@ -30,7 +31,6 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* ORDER SUCCESS (FIXED) */}
       <Route
         path="/order-success/:id"
         element={
@@ -39,6 +39,9 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* 404 ROUTE */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
