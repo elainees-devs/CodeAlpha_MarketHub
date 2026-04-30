@@ -15,15 +15,15 @@ export type LoginPayload = {
   password: string;
 };
 
-export type ChangePasswordPayload = {
-  oldPassword: string;
-  newPassword: string;
-};
 
 export type AuthUser = {
   id: string;
   name: string;
   email: string;
+};
+
+export type ChangePasswordPayload = {
+  new_password: string;
 };
 
 // ==============================
