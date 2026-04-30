@@ -48,52 +48,47 @@ class AuthService {
   }
 
   // =====================================================
-// LOGIN USER
-// =====================================================
-async login(data: LoginInput) {
-  const user = await prisma.users.findUnique({
-  where: { email: data.email },
-  include: {
-    user_roles: {
+  // LOGIN USER
+  // =====================================================
+  async login(data: LoginInput) {
+    const user = await prisma.users.findUnique({
+      where: { email: data.email },
       include: {
-        roles: true,
+        user_roles: {
+          include: {
+            roles: true,
+          },
+        },
       },
-    },
-  },
-});
+    });
 
-  if (!user) {
-    throw new ApiError(401, "Invalid credentials");
+    if (!user) {
+      throw new ApiError(401, "Invalid credentials");
+    }
+
+    const isValid = await bcrypt.compare(data.password, user.password_hash);
+
+    if (!isValid) {
+      throw new ApiError(401, "Invalid credentials");
+    }
+    const roles = user.user_roles.map((ur) => ur.roles.name);
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      roles,
+    });
+
+    return {
+      user: mapAuthUserResponse(user as unknown as AuthEntity),
+      token,
+    };
   }
-
-  const isValid = await bcrypt.compare(
-    data.password,
-    user.password_hash
-  );
-
-  if (!isValid) {
-    throw new ApiError(401, "Invalid credentials");
-  }
- const roles = user.user_roles.map((ur) => ur.roles.name);
-  const token = generateToken({
-    id: user.id,
-    email: user.email,
-    roles,
-  });
-
-  
-
-  return {
-    user: mapAuthUserResponse(user as unknown as AuthEntity),
-    token,
-  };
-}
   // =====================================================
   // CHANGE PASSWORD
   // =====================================================
   async changePassword(
     user_id: number,
-    data: ChangePasswordInput
+    data: ChangePasswordInput,
   ): Promise<void> {
     const user = await prisma.users.findUnique({
       where: { id: user_id },
