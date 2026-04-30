@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import HomeButton from "../components/shared/HomeButton";
 
 const NotFound: React.FC = () => {
   return (
@@ -20,19 +20,7 @@ const NotFound: React.FC = () => {
         The page you are looking for doesn’t exist or has been moved.
       </p>
 
-      <Link
-        to="/"
-        style={{
-          marginTop: "20px",
-          padding: "10px 20px",
-          backgroundColor: "#000",
-          color: "#fff",
-          textDecoration: "none",
-          borderRadius: "6px",
-        }}
-      >
-        Go Home
-      </Link>
+      <HomeButton to="/" label="Go Back Home" style={{ marginTop: "20px" }} />  
     </div>
   );
 };
