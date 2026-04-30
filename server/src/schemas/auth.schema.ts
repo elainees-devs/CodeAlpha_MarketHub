@@ -12,7 +12,6 @@ export const RegisterSchema = z.object({
 });
 
 export const ChangePasswordSchema = z.object({
-  old_password: z.string().min(8),
   new_password: z.string().min(8),
 });
 
