@@ -22,9 +22,9 @@ TRUNCATE TABLE
 RESTART IDENTITY CASCADE;
 
 INSERT INTO users (name, email, password_hash) VALUES
-('Alice Mwangi', 'alice@test.com', '$2b$10$DqUZOzwGeVwwy81nhvoOLuT5H2Jh6gZ427COAljxSoE0LgwLNou/2'),
-('Brian Otieno', 'brian@test.com', '$2b$10$DqUZOzwGeVwwy81nhvoOLuT5H2Jh6gZ427COAljxSoE0LgwLNou/2'),
-('Carol Wanjiku', 'carol@test.com', '$2b$10$DqUZOzwGeVwwy81nhvoOLuT5H2Jh6gZ427COAljxSoE0LgwLNou/2');
+('Alice Mwangi', 'alice@test.com', '$2b$10$DqUZOzwGeVwwy81nhvoOLuT5H2Jh6gZ427COAljxSoE0LgwLNou/2'), /-- Password: "password123"
+('Brian Otieno', 'brian@test.com', '$2b$10$DqUZOzwGeVwwy81nhvoOLuT5H2Jh6gZ427COAljxSoE0LgwLNou/2'), //-- Password: "password123"
+('Carol Wanjiku', 'carol@test.com', '$2b$10$DqUZOzwGeVwwy81nhvoOLuT5H2Jh6gZ427COAljxSoE0LgwLNou/2'); //-- Password: "password123"    
 
 INSERT INTO roles (name, description) VALUES
 ('ADMIN', 'System administrator'),
