@@ -2,8 +2,8 @@ import React from "react";
 import { ShoppingCart, User, LogIn } from "lucide-react";
 import { Link } from "react-router-dom";
 import Searchbar from "../shared/Searchbar";
-import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { logout } from "../../features/auth/authSlice";
+import { useAppSelector } from "../../app/hooks";
+import { useLogout } from "../../hooks/useLogout";
 
 type Props = {
   search: string;
@@ -11,15 +11,11 @@ type Props = {
 };
 
 const Header: React.FC<Props> = ({ search, onSearchChange }) => {
-  const dispatch = useAppDispatch();
+  const logout = useLogout();
 
   const cartItems = useAppSelector((state) => state.cart.items);
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const user = useAppSelector((state) => state.auth.user);
-
-  const handleLogout = () => {
-    dispatch(logout());
-  };
 
   return (
     <header className="bg-white shadow-sm px-4 py-3 flex items-center justify-between sticky top-0 z-50">
@@ -38,8 +34,8 @@ const Header: React.FC<Props> = ({ search, onSearchChange }) => {
         {/* AUTH */}
         {user ? (
           <button
-            onClick={handleLogout}
-            className="flex items-center gap-1 text-red-600"
+            onClick={logout}
+            className="flex items-center gap-2 text-red-600 hover:text-red-700 transition"
           >
             <LogIn size={16} />
             Logout
