@@ -86,34 +86,27 @@ class AuthService {
   // =====================================================
   // CHANGE PASSWORD
   // =====================================================
-  async changePassword(
-    user_id: number,
-    data: ChangePasswordInput,
-  ): Promise<void> {
-    const user = await prisma.users.findUnique({
-      where: { id: user_id },
-    });
+ async changePassword(
+  user_id: number,
+  data: ChangePasswordInput,
+): Promise<void> {
+  const user = await prisma.users.findUnique({
+    where: { id: user_id },
+  });
 
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    const isMatch = await bcrypt.compare(data.old_password, user.password_hash);
-
-    if (!isMatch) {
-      throw new Error("Old password is incorrect");
-    }
-
-    const hashed = await bcrypt.hash(data.new_password, 10);
-
-    await prisma.users.update({
-      where: { id: user_id },
-      data: {
-        password_hash: hashed,
-      },
-    });
+  if (!user) {
+    throw new Error("User not found");
   }
 
+  const hashed = await bcrypt.hash(data.new_password, 10);
+
+  await prisma.users.update({
+    where: { id: user_id },
+    data: {
+      password_hash: hashed,
+    },
+  });
+}
   // =====================================================
   // GET CURRENT USER
   // =====================================================
