@@ -89,7 +89,7 @@ const OrderSuccess: React.FC = () => {
 
       <p className="mt-2">Order ID: #{order.id}</p>
       <p>Status: {order.status}</p>
-      <p>Total: KES {order.totalAmount}</p>
+      <p>Total: KES {order.total.toLocaleString()}</p>
 
       <h2 className="mt-4 font-semibold">Items</h2>
 
