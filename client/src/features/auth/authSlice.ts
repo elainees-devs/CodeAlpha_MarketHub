@@ -9,6 +9,7 @@ import type { ApiError, AuthState } from "./types";
 import {
   authApi,
   type AuthUser,
+  type ChangePasswordPayload,
   type LoginPayload,
   type RegisterPayload,
 } from "../../services/authService";
@@ -90,6 +91,26 @@ export const registerUser = createAsyncThunk<
   }
 });
 
+export const changePassword = createAsyncThunk<
+  { message: string },
+  ChangePasswordPayload,
+  { rejectValue: ApiError }
+>("auth/changePassword", async (data, { rejectWithValue }) => {
+  try {
+    const res = await authApi.changePassword(data);
+
+    return {
+      message: res.message || "Password changed successfully",
+    };
+  } catch (err) {
+    const axiosError = err as AxiosError<ApiError>;
+
+    return rejectWithValue({
+      message: axiosError.response?.data?.message || "Change password failed",
+    });
+  }
+});
+
 // ==============================
 // FETCH CURRENT USER
 // ==============================
@@ -105,8 +126,7 @@ export const fetchMe = createAsyncThunk<
     const axiosError = err as AxiosError<ApiError>;
 
     return rejectWithValue({
-      message:
-        axiosError.response?.data?.message || "Failed to fetch user",
+      message: axiosError.response?.data?.message || "Failed to fetch user",
     });
   }
 });
@@ -169,6 +189,20 @@ const authSlice = createSlice({
     builder.addCase(registerUser.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload?.message ?? "Register failed";
+    });
+    // ================= CHANGE PASSWORD =================
+    builder.addCase(changePassword.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+
+    builder.addCase(changePassword.fulfilled, (state) => {
+      state.loading = false;
+    });
+
+    builder.addCase(changePassword.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload?.message ?? "Change password failed";
     });
 
     // ================= FETCH USER =================
